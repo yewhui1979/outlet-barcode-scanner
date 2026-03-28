@@ -1,9 +1,12 @@
 package com.outletscanner.app.ui.main
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
@@ -25,6 +28,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefsManager: PrefsManager
     private lateinit var repository: ProductRepository
     private lateinit var syncManager: DataSyncManager
+
+    private val filePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { importFileFromUri(it) }
+    }
 
     companion object {
         private const val REQUEST_SCAN = 1001
@@ -84,9 +93,59 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Import file button
+        binding.btnImportFile.setOnClickListener {
+            filePickerLauncher.launch(arrayOf("text/plain", "*/*"))
+        }
+
         // Sync button
         binding.btnSync.setOnClickListener {
             performSync()
+        }
+    }
+
+    private fun importFileFromUri(uri: Uri) {
+        val outlet = prefsManager.selectedOutlet
+        if (outlet.isBlank()) return
+
+        binding.btnImportFile.isEnabled = false
+        binding.progressSync.visibility = View.VISIBLE
+        binding.progressSync.isIndeterminate = true
+        binding.tvLastSynced.text = "Importing file..."
+
+        lifecycleScope.launch {
+            try {
+                val count = withContext(Dispatchers.IO) {
+                    val inputStream = contentResolver.openInputStream(uri)
+                        ?: throw Exception("Cannot read file")
+                    repository.parseAndInsert(inputStream, outlet) { processed, _ ->
+                        launch(Dispatchers.Main) {
+                            binding.tvItemCount.text = getString(R.string.item_count, processed)
+                        }
+                    }
+                }
+
+                prefsManager.lastSyncTimestamp = java.text.SimpleDateFormat(
+                    "yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()
+                ).format(java.util.Date())
+
+                Snackbar.make(
+                    binding.root,
+                    "Imported $count products successfully!",
+                    Snackbar.LENGTH_SHORT
+                ).show()
+
+                refreshUI()
+            } catch (e: Exception) {
+                Snackbar.make(
+                    binding.root,
+                    "Import failed: ${e.message ?: "Unknown error"}",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            } finally {
+                binding.btnImportFile.isEnabled = true
+                binding.progressSync.visibility = View.GONE
+            }
         }
     }
 
