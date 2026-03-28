@@ -3,12 +3,18 @@ package com.outletscanner.app.ui.login
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.outletscanner.app.R
+import com.outletscanner.app.data.repository.ProductRepository
 import com.outletscanner.app.databinding.ActivityLoginBinding
 import com.outletscanner.app.ui.main.MainActivity
 import com.outletscanner.app.util.PrefsManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LoginActivity : AppCompatActivity() {
 
@@ -60,6 +66,43 @@ class LoginActivity : AppCompatActivity() {
 
             prefsManager.selectedOutlet = selectedOutlet
             prefsManager.isLoggedIn = true
+
+            // Load bundled sample data if available for this outlet
+            loadBundledData(selectedOutlet)
+        }
+    }
+
+    private fun loadBundledData(outlet: String) {
+        val repository = ProductRepository(this)
+
+        lifecycleScope.launch {
+            val count = withContext(Dispatchers.IO) {
+                repository.getItemCount(outlet)
+            }
+
+            // Only load bundled data if database is empty for this outlet
+            if (count == 0) {
+                try {
+                    val assetFiles = assets.list("") ?: emptyArray()
+                    val matchingFile = assetFiles.firstOrNull {
+                        it.startsWith("${outlet}_") && it.endsWith(".txt")
+                    }
+
+                    if (matchingFile != null) {
+                        Toast.makeText(this@LoginActivity, "Loading sample data for $outlet...", Toast.LENGTH_SHORT).show()
+
+                        withContext(Dispatchers.IO) {
+                            val inputStream = assets.open(matchingFile)
+                            repository.parseAndInsert(inputStream, outlet)
+                        }
+
+                        Toast.makeText(this@LoginActivity, "Sample data loaded!", Toast.LENGTH_SHORT).show()
+                    }
+                } catch (e: Exception) {
+                    // Ignore - sample data is optional
+                }
+            }
+
             navigateToMain()
         }
     }

@@ -11,6 +11,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.oned.Code128Writer
+import com.google.zxing.oned.EAN13Writer
 import com.outletscanner.app.data.model.Product
 import java.io.File
 import java.io.FileOutputStream
@@ -152,41 +155,31 @@ object PdfLabelGenerator {
     }
 
     /**
-     * Generate a simple Code 128-like barcode bitmap from a barcode string.
-     * This creates a visual barcode representation using standard bar patterns.
+     * Generate a proper barcode bitmap using ZXing library.
+     * Tries EAN-13 first (for 13-digit barcodes), falls back to Code 128.
      */
     private fun generateBarcodeBitmap(barcodeText: String, width: Int, height: Int): Bitmap? {
         if (barcodeText.isBlank()) return null
 
         try {
-            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bitmap)
-            canvas.drawColor(Color.WHITE)
-
-            val paint = Paint().apply {
-                color = Color.BLACK
-                style = Paint.Style.FILL
-            }
-
-            // Simple barcode rendering: convert each char to a pattern of bars
-            val totalBars = barcodeText.length * 7 + (barcodeText.length - 1) * 2
-            val barWidth = width.toFloat() / totalBars.coerceAtLeast(1)
-
-            var x = 0f
-            for (char in barcodeText) {
-                val code = char.code
-                // Create a 7-bar pattern from char value
-                for (bit in 6 downTo 0) {
-                    val isBar = (code shr bit) and 1 == 1
-                    if (isBar) {
-                        canvas.drawRect(x, 0f, x + barWidth, height.toFloat(), paint)
-                    }
-                    x += barWidth
+            val bitMatrix = try {
+                // Try EAN-13 for 13-digit numeric barcodes
+                if (barcodeText.length == 13 && barcodeText.all { it.isDigit() }) {
+                    EAN13Writer().encode(barcodeText, BarcodeFormat.EAN_13, width, height)
+                } else {
+                    Code128Writer().encode(barcodeText, BarcodeFormat.CODE_128, width, height)
                 }
-                // Gap between characters
-                x += barWidth * 2
+            } catch (e: Exception) {
+                // Fallback to Code 128 for any barcode
+                Code128Writer().encode(barcodeText, BarcodeFormat.CODE_128, width, height)
             }
 
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            for (x in 0 until width) {
+                for (y in 0 until height) {
+                    bitmap.setPixel(x, y, if (bitMatrix.get(x, y)) Color.BLACK else Color.WHITE)
+                }
+            }
             return bitmap
         } catch (e: Exception) {
             return null

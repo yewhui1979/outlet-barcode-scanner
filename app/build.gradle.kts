@@ -69,8 +69,12 @@ dependencies {
     // WorkManager
     implementation("androidx.work:work-runtime-ktx:2.9.0")
 
-    // ML Kit Barcode Scanning
+    // ML Kit Barcode Scanning (bundled model - works offline, no download needed)
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
+    // ZXing for barcode generation (shelf labels) and as fallback decoder
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0") { isTransitive = false }
 
     // CameraX
     implementation("androidx.camera:camera-core:1.3.1")
