@@ -15,7 +15,16 @@ class PrefsManager(context: Context) {
         private const val KEY_LAST_SYNC = "last_sync"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
 
-        val OUTLETS = listOf("SS", "TRS", "BJ", "SM09", "TBD")
+        val OUTLETS = listOf(
+            "AJB", "AM", "ASP", "BG", "BM",
+            "DAD", "ENS",
+            "H025", "H026", "H027", "H028", "H029", "H031",
+            "JSA", "KJ", "KK",
+            "MJ",
+            "PC", "PJ3", "PS",
+            "SB", "SD", "SJ", "SM07", "SMP", "SS",
+            "TDT"
+        )
     }
 
     var selectedOutlet: String
