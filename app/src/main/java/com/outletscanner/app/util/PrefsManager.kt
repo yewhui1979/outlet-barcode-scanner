@@ -22,8 +22,9 @@ class PrefsManager(context: Context) {
             "JSA", "KJ", "KK",
             "MJ",
             "PC", "PJ3", "PS",
+            "RS",
             "SB", "SD", "SJ", "SM07", "SMP", "SS",
-            "TDT"
+            "TDT", "TSS"
         )
     }
 
