@@ -162,6 +162,7 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this@MainActivity, ProductDetailActivity::class.java).apply {
                     putExtra("item_code", product.itemCode)
                     putExtra("barcode", product.barcode)
+                    putExtra("article_no", product.articleNo)
                     putExtra("description", product.description)
                     putExtra("qoh", product.qoh)
                     putExtra("price", product.formattedPrice)
@@ -265,6 +266,7 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this@MainActivity, ProductDetailActivity::class.java).apply {
                     putExtra("item_code", product.itemCode)
                     putExtra("barcode", product.barcode)
+                    putExtra("article_no", product.articleNo)
                     putExtra("description", product.description)
                     putExtra("qoh", product.qoh)
                     putExtra("price", product.formattedPrice)

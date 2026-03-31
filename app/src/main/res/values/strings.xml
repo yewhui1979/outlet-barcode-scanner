@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Outlet Scanner</string>
+    <string name="app_name">SKU Checker</string>
     <string name="select_outlet">Select Outlet</string>
     <string name="enter">Enter</string>
     <string name="scan_barcode">Scan Barcode</string>
@@ -15,7 +15,7 @@
     <string name="change_outlet">Change Outlet</string>
     <string name="clear_data">Clear Local Data</string>
     <string name="about">About</string>
-    <string name="version_info">Outlet Scanner v%1$s</string>
+    <string name="version_info">SKU Checker v%1$s</string>
     <string name="item_code">Item Code</string>
     <string name="barcode_label">Barcode</string>
     <string name="description_label">Description</string>
@@ -31,7 +31,7 @@
     <string name="no_product_found">No product found</string>
     <string name="camera_permission_required">Camera permission is required for scanning</string>
     <string name="point_camera">Point camera at barcode</string>
-    <string name="outlet_label">Outlet: %1$s</string>
+    <string name="outlet_label">Store: %1$s</string>
     <string name="confirm_clear">Are you sure you want to clear all local data?</string>
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
@@ -41,6 +41,29 @@
     <string name="saving_label">Generating shelf label…</string>
     <string name="server_url_hint">http://server:port/path/</string>
     <string name="please_select_outlet">Please select an outlet</string>
-    <string name="welcome_message">Welcome to Outlet Scanner</string>
+    <string name="welcome_message">Hero Market - Fresh &amp; Easy</string>
     <string name="sync_progress">Syncing: %1$d%%</string>
+
+    <!-- Login / User Management -->
+    <string name="login">Login</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="enter_credentials">Please enter username and password</string>
+    <string name="invalid_credentials">Invalid username or password</string>
+    <string name="logout">Logout</string>
+    <string name="confirm_logout">Are you sure you want to logout?</string>
+    <string name="logged_in_as">Logged in as: %1$s (%2$s)</string>
+    <string name="manage_users">Manage Users</string>
+    <string name="add_user">Add User</string>
+    <string name="delete_user">Delete User</string>
+    <string name="confirm_delete_user">Delete user \"%1$s\"?</string>
+    <string name="user_added">User added successfully</string>
+    <string name="user_deleted">User deleted</string>
+    <string name="username_exists">Username already exists</string>
+    <string name="fill_all_fields">Please fill all required fields</string>
+    <string name="assign_store_required">Please assign a store for user role</string>
+    <string name="role">Role</string>
+    <string name="assigned_store">Assigned Store</string>
+    <string name="assigned_store_label">Store: %1$s</string>
+    <string name="no_users">No users found</string>
 </resources>

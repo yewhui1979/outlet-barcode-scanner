@@ -72,6 +72,7 @@ class ProductDetailActivity : AppCompatActivity() {
             outlet = "",
             itemCode = intent.getStringExtra("item_code") ?: "",
             barcode = intent.getStringExtra("barcode") ?: "",
+            articleNo = intent.getStringExtra("article_no") ?: "",
             description = intent.getStringExtra("description") ?: "",
             qoh = intent.getStringExtra("qoh") ?: "0",
             price = intent.getStringExtra("price") ?: "0.00",

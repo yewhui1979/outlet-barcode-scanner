@@ -5,7 +5,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Build
@@ -17,24 +19,28 @@ import com.google.zxing.oned.EAN13Writer
 import com.outletscanner.app.data.model.Product
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 object PdfLabelGenerator {
 
-    // A5 size in points (72 points per inch): 5.83 x 8.27 inches
-    private const val A5_WIDTH = 420 // ~5.83 inches * 72
-    private const val A5_HEIGHT = 595 // ~8.27 inches * 72
+    // Label size: 6cm x 3.3cm converted to points (1cm = 28.35 points)
+    private const val LABEL_WIDTH = 170   // 6cm * 28.35 ≈ 170 points
+    private const val LABEL_HEIGHT = 94   // 3.3cm * 28.35 ≈ 94 points
 
     /**
-     * Generate an A5 PDF shelf label for a product.
-     * Returns the URI of the saved file.
+     * Generate a shelf label PDF matching the client's retail label format.
+     * Size: 6cm x 3.3cm
+     * Layout: Barcode (rotated vertical) on left, description + price on right
      */
     fun generateLabel(context: Context, product: Product): Uri? {
         val document = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(A5_WIDTH, A5_HEIGHT, 1).create()
+        val pageInfo = PdfDocument.PageInfo.Builder(LABEL_WIDTH, LABEL_HEIGHT, 1).create()
         val page = document.startPage(pageInfo)
         val canvas = page.canvas
 
-        drawLabel(canvas, product, A5_WIDTH, A5_HEIGHT)
+        drawShelfLabel(canvas, product, LABEL_WIDTH, LABEL_HEIGHT)
 
         document.finishPage(page)
 
@@ -44,114 +50,133 @@ object PdfLabelGenerator {
         return uri
     }
 
-    private fun drawLabel(canvas: Canvas, product: Product, width: Int, height: Int) {
+    private fun drawShelfLabel(canvas: Canvas, product: Product, width: Int, height: Int) {
+        // White background
         val bgPaint = Paint().apply {
             color = Color.WHITE
             style = Paint.Style.FILL
         }
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
 
-        // Border
+        // Thin border
         val borderPaint = Paint().apply {
-            color = Color.parseColor("#0D47A1")
-            style = Paint.Style.STROKE
-            strokeWidth = 3f
-        }
-        canvas.drawRect(15f, 15f, width - 15f, height - 15f, borderPaint)
-
-        var yPos = 60f
-        val leftMargin = 30f
-        val contentWidth = width - 60f
-
-        // Item Code
-        val labelPaint = Paint().apply {
-            color = Color.parseColor("#757575")
-            textSize = 16f
-            isAntiAlias = true
-        }
-        canvas.drawText("Item Code", leftMargin, yPos, labelPaint)
-        yPos += 24f
-
-        val valuePaint = Paint().apply {
             color = Color.BLACK
-            textSize = 22f
+            style = Paint.Style.STROKE
+            strokeWidth = 0.5f
+        }
+        canvas.drawRect(0.5f, 0.5f, width - 0.5f, height - 0.5f, borderPaint)
+
+        val padding = 4f
+        val barcodeAreaWidth = 45f // Left area for barcode
+
+        // === LEFT SIDE: Barcode (rotated 90° counter-clockwise) ===
+        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 70, 30)
+        if (barcodeBitmap != null) {
+            // Rotate barcode 90° counter-clockwise
+            val matrix = Matrix()
+            matrix.postRotate(-90f)
+            val rotatedBarcode = Bitmap.createBitmap(
+                barcodeBitmap, 0, 0,
+                barcodeBitmap.width, barcodeBitmap.height,
+                matrix, true
+            )
+            // Draw rotated barcode on left side
+            val barcodeX = padding + 2f
+            val barcodeY = padding + 2f
+            canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
+            rotatedBarcode.recycle()
+            barcodeBitmap.recycle()
+        }
+
+        // Barcode number (rotated, below barcode)
+        val barcodeNumPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 5f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+        }
+        canvas.save()
+        canvas.rotate(-90f, padding + 38f, height / 2f)
+        canvas.drawText(product.barcode, padding + 38f - 30f, height / 2f + 2f, barcodeNumPaint)
+        canvas.restore()
+
+        // Article number below barcode number
+        val articlePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 5.5f
             isAntiAlias = true
             isFakeBoldText = true
         }
-        canvas.drawText(product.itemCode, leftMargin, yPos, valuePaint)
-        yPos += 40f
+        canvas.save()
+        canvas.rotate(-90f, padding + 43f, height / 2f)
+        canvas.drawText(product.articleNo, padding + 43f - 15f, height / 2f + 2f, articlePaint)
+        canvas.restore()
 
-        // Barcode image
-        val barcodeBitmap = generateBarcodeBitmap(product.barcode, (contentWidth).toInt(), 80)
-        if (barcodeBitmap != null) {
-            canvas.drawBitmap(barcodeBitmap, leftMargin, yPos, null)
-            yPos += 90f
-        }
+        // === RIGHT SIDE: Description + Price ===
+        val rightX = barcodeAreaWidth + 4f
+        val rightWidth = width - rightX - padding
 
-        // Barcode number
-        val barcodeTextPaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 18f
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-        canvas.drawText(product.barcode, width / 2f, yPos, barcodeTextPaint)
-        yPos += 50f
-
-        // Divider line
-        val dividerPaint = Paint().apply {
-            color = Color.parseColor("#E0E0E0")
-            strokeWidth = 1f
-        }
-        canvas.drawLine(leftMargin, yPos, width - leftMargin, yPos, dividerPaint)
-        yPos += 30f
-
-        // Description
-        canvas.drawText("Description", leftMargin, yPos, labelPaint)
-        yPos += 26f
-
+        // Description (top right)
         val descPaint = Paint().apply {
             color = Color.BLACK
-            textSize = 20f
+            textSize = 7f
             isAntiAlias = true
             isFakeBoldText = true
         }
 
-        // Word wrap description
+        var yPos = padding + 10f
+
+        // Word wrap description into multiple lines
         val descWords = product.description.split(" ")
         var currentLine = StringBuilder()
+        var lineCount = 0
         for (word in descWords) {
             val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
-            if (descPaint.measureText(testLine) > contentWidth) {
-                canvas.drawText(currentLine.toString(), leftMargin, yPos, descPaint)
-                yPos += 26f
+            if (descPaint.measureText(testLine) > rightWidth && currentLine.isNotEmpty()) {
+                canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
+                yPos += 9f
                 currentLine = StringBuilder(word)
+                lineCount++
+                if (lineCount >= 2) break // Max 2 lines for description
             } else {
                 currentLine = StringBuilder(testLine)
             }
         }
-        if (currentLine.isNotEmpty()) {
-            canvas.drawText(currentLine.toString(), leftMargin, yPos, descPaint)
-            yPos += 50f
+        if (currentLine.isNotEmpty() && lineCount < 3) {
+            canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
+            yPos += 12f
         }
 
-        // Divider
-        canvas.drawLine(leftMargin, yPos, width - leftMargin, yPos, dividerPaint)
-        yPos += 40f
-
-        // Price - large and prominent
-        canvas.drawText("Price", leftMargin, yPos, labelPaint)
-        yPos += 10f
-
-        val pricePaint = Paint().apply {
-            color = Color.parseColor("#0D47A1")
-            textSize = 72f
+        // Date (top right corner)
+        val datePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 5f
             isAntiAlias = true
-            isFakeBoldText = true
+            textAlign = Paint.Align.RIGHT
+        }
+        val dateStr = SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date())
+        canvas.drawText(dateStr, width - padding, padding + 8f, datePaint)
+
+        // "RM" currency label (top right area, above price)
+        val rmPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 7f
+            isAntiAlias = true
+            textAlign = Paint.Align.RIGHT
+        }
+        canvas.drawText("RM", width - padding, yPos + 4f, rmPaint)
+
+        // Price - LARGE and bold
+        val pricePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 28f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
         }
-        yPos += 70f
-        canvas.drawText(product.formattedPrice, width / 2f, yPos, pricePaint)
+        val priceX = rightX + rightWidth / 2f
+        yPos += 28f
+        canvas.drawText(product.formattedPrice, priceX, yPos, pricePaint)
     }
 
     /**
@@ -163,14 +188,12 @@ object PdfLabelGenerator {
 
         try {
             val bitMatrix = try {
-                // Try EAN-13 for 13-digit numeric barcodes
                 if (barcodeText.length == 13 && barcodeText.all { it.isDigit() }) {
                     EAN13Writer().encode(barcodeText, BarcodeFormat.EAN_13, width, height)
                 } else {
                     Code128Writer().encode(barcodeText, BarcodeFormat.CODE_128, width, height)
                 }
             } catch (e: Exception) {
-                // Fallback to Code 128 for any barcode
                 Code128Writer().encode(barcodeText, BarcodeFormat.CODE_128, width, height)
             }
 
@@ -190,7 +213,6 @@ object PdfLabelGenerator {
         val fileName = "ShelfLabel_${product.itemCode}_${System.currentTimeMillis()}.pdf"
 
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Use MediaStore for Android 10+
             val contentValues = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
@@ -210,7 +232,6 @@ object PdfLabelGenerator {
 
             uri
         } else {
-            // Legacy storage for older devices
             val downloadsDir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS
             )

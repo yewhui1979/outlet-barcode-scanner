@@ -14,6 +14,8 @@ class PrefsManager(context: Context) {
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_LAST_SYNC = "last_sync"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
+        private const val KEY_CURRENT_USERNAME = "current_username"
+        private const val KEY_CURRENT_ROLE = "current_role"
 
         val OUTLETS = listOf(
             "AJB", "AM", "ASP", "BG", "BM",
@@ -43,6 +45,14 @@ class PrefsManager(context: Context) {
     var isLoggedIn: Boolean
         get() = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
         set(value) = prefs.edit().putBoolean(KEY_IS_LOGGED_IN, value).apply()
+
+    var currentUsername: String
+        get() = prefs.getString(KEY_CURRENT_USERNAME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_CURRENT_USERNAME, value).apply()
+
+    var currentRole: String
+        get() = prefs.getString(KEY_CURRENT_ROLE, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_CURRENT_ROLE, value).apply()
 
     fun clear() {
         prefs.edit().clear().apply()

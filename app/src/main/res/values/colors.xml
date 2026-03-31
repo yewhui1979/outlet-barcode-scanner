@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#0D47A1</color>
-    <color name="primary_variant">#1565C0</color>
+    <color name="hero_red">#D4213D</color>
+    <color name="primary">#D4213D</color>
+    <color name="primary_variant">#B71C1C</color>
     <color name="on_primary">#FFFFFF</color>
     <color name="secondary">#00897B</color>
     <color name="secondary_variant">#00695C</color>
@@ -22,5 +23,5 @@
     <color name="scan_frame">#00BCD4</color>
     <color name="success_green">#4CAF50</color>
     <color name="warning_orange">#FF9800</color>
-    <color name="status_bar">#0A3470</color>
+    <color name="status_bar">#B71C1C</color>
 </resources>

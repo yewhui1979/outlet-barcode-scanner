@@ -2,6 +2,7 @@ package com.outletscanner.app.ui.settings
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -12,6 +13,7 @@ import com.outletscanner.app.data.repository.ProductRepository
 import com.outletscanner.app.databinding.ActivitySettingsBinding
 import com.outletscanner.app.ui.login.LoginActivity
 import com.outletscanner.app.util.PrefsManager
+import com.outletscanner.app.util.UserManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,6 +22,7 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var prefsManager: PrefsManager
+    private lateinit var userManager: UserManager
     private lateinit var repository: ProductRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,10 +31,12 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         prefsManager = PrefsManager(this)
+        userManager = UserManager(this)
         repository = ProductRepository(this)
 
         setupToolbar()
         setupUI()
+        setupRoleBasedVisibility()
         setupListeners()
     }
 
@@ -45,6 +50,37 @@ class SettingsActivity : AppCompatActivity() {
         binding.etServerUrl.setText(prefsManager.serverUrl)
         binding.tvCurrentOutlet.text = getString(R.string.outlet_label, prefsManager.selectedOutlet)
         binding.tvVersion.text = getString(R.string.version_info, BuildConfig.VERSION_NAME)
+
+        // Show logged in user info
+        val currentUser = userManager.getCurrentUser()
+        if (currentUser != null) {
+            binding.tvLoggedInAs.text = getString(
+                R.string.logged_in_as,
+                currentUser.username,
+                currentUser.role.replaceFirstChar { it.uppercase() }
+            )
+            binding.tvLoggedInAs.visibility = View.VISIBLE
+        }
+    }
+
+    private fun setupRoleBasedVisibility() {
+        val role = prefsManager.currentRole
+
+        // Server URL: admin only
+        binding.cardServerUrl.visibility =
+            if (role == UserManager.ROLE_ADMIN) View.VISIBLE else View.GONE
+
+        // Change Outlet: admin and superuser only
+        binding.cardChangeOutlet.visibility =
+            if (role == UserManager.ROLE_ADMIN || role == UserManager.ROLE_SUPERUSER) View.VISIBLE else View.GONE
+
+        // Clear Data: admin only
+        binding.cardClearData.visibility =
+            if (role == UserManager.ROLE_ADMIN) View.VISIBLE else View.GONE
+
+        // Manage Users: admin only
+        binding.cardManageUsers.visibility =
+            if (role == UserManager.ROLE_ADMIN) View.VISIBLE else View.GONE
     }
 
     private fun setupListeners() {
@@ -76,6 +112,23 @@ class SettingsActivity : AppCompatActivity() {
                 }
                 .show()
         }
+
+        // Manage Users
+        binding.cardManageUsers.setOnClickListener {
+            startActivity(Intent(this, UserManagementActivity::class.java))
+        }
+
+        // Logout
+        binding.btnLogout.setOnClickListener {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.logout)
+                .setMessage(R.string.confirm_logout)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.confirm) { _, _ ->
+                    performLogout()
+                }
+                .show()
+        }
     }
 
     private fun clearData() {
@@ -86,5 +139,18 @@ class SettingsActivity : AppCompatActivity() {
             prefsManager.lastSyncTimestamp = ""
             Toast.makeText(this@SettingsActivity, R.string.data_cleared, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun performLogout() {
+        userManager.clearCurrentUser()
+        prefsManager.currentUsername = ""
+        prefsManager.currentRole = ""
+        prefsManager.logout()
+
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
+        finish()
     }
 }

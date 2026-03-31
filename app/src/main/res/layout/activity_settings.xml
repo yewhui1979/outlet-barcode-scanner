@@ -33,8 +33,19 @@
             android:orientation="vertical"
             android:padding="@dimen/padding_medium">
 
-            <!-- Server URL -->
+            <!-- Logged in as -->
+            <TextView
+                android:id="@+id/tvLoggedInAs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/padding_medium"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <!-- Server URL (admin only) -->
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardServerUrl"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/padding_medium"
@@ -85,7 +96,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Change Outlet -->
+            <!-- Change Outlet (admin + superuser) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardChangeOutlet"
                 android:layout_width="match_parent"
@@ -145,7 +156,7 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Clear Data -->
+            <!-- Clear Data (admin only) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardClearData"
                 android:layout_width="match_parent"
@@ -184,10 +195,57 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Manage Users (admin only) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardManageUsers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/padding_medium"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardCornerRadius="@dimen/corner_radius"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="@dimen/padding_medium">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_menu_my_calendar"
+                        android:contentDescription="Manage users"
+                        app:tint="@color/primary" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:text="@string/manage_users"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_chevron_right"
+                        android:contentDescription="Go"
+                        app:tint="@color/text_secondary" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- About -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/padding_medium"
                 app:cardCornerRadius="@dimen/corner_radius"
                 app:cardElevation="2dp">
 
@@ -217,6 +275,19 @@
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Logout -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLogout"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/logout"
+                android:textColor="@color/error"
+                android:textSize="16sp"
+                app:cornerRadius="@dimen/corner_radius"
+                app:strokeColor="@color/error" />
 
         </LinearLayout>
 
