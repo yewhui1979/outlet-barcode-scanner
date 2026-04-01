@@ -5,25 +5,56 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.snackbar.Snackbar
 import com.outletscanner.app.R
 import com.outletscanner.app.data.model.Product
+import com.outletscanner.app.data.repository.ProductRepository
 import com.outletscanner.app.databinding.ActivityProductDetailBinding
 import com.outletscanner.app.ui.scanner.ScannerActivity
 import com.outletscanner.app.util.PdfLabelGenerator
+import com.outletscanner.app.util.PrefsManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ProductDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityProductDetailBinding
+    private lateinit var repository: ProductRepository
+    private lateinit var prefsManager: PrefsManager
+
+    // Current product data
+    private var currentItemCode = ""
+    private var currentBarcode = ""
+    private var currentArticleNo = ""
+    private var currentDescription = ""
+    private var currentQoh = "0"
+    private var currentPrice = "0.00"
+    private var currentOnOrder = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityProductDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        repository = ProductRepository(this)
+        prefsManager = PrefsManager(this)
+
+        loadFromIntent()
         setupToolbar()
         displayProductInfo()
         setupButtons()
+    }
+
+    private fun loadFromIntent() {
+        currentItemCode = intent.getStringExtra("item_code") ?: ""
+        currentBarcode = intent.getStringExtra("barcode") ?: ""
+        currentArticleNo = intent.getStringExtra("article_no") ?: ""
+        currentDescription = intent.getStringExtra("description") ?: ""
+        currentQoh = intent.getStringExtra("qoh") ?: "0"
+        currentPrice = intent.getStringExtra("price") ?: "0.00"
+        currentOnOrder = intent.getBooleanExtra("on_order", false)
     }
 
     private fun setupToolbar() {
@@ -33,20 +64,13 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun displayProductInfo() {
-        val itemCode = intent.getStringExtra("item_code") ?: ""
-        val barcode = intent.getStringExtra("barcode") ?: ""
-        val description = intent.getStringExtra("description") ?: ""
-        val qoh = intent.getStringExtra("qoh") ?: "0"
-        val price = intent.getStringExtra("price") ?: "0.00"
-        val onOrder = intent.getBooleanExtra("on_order", false)
+        binding.tvItemCode.text = currentItemCode
+        binding.tvBarcode.text = currentBarcode
+        binding.tvDescription.text = currentDescription
+        binding.tvQoh.text = currentQoh
+        binding.tvPrice.text = currentPrice
 
-        binding.tvItemCode.text = itemCode
-        binding.tvBarcode.text = barcode
-        binding.tvDescription.text = description
-        binding.tvQoh.text = qoh
-        binding.tvPrice.text = price
-
-        if (onOrder) {
+        if (currentOnOrder) {
             binding.tvOnOrder.text = getString(R.string.yes)
             binding.tvOnOrder.setTextColor(ContextCompat.getColor(this, R.color.success_green))
         } else {
@@ -70,13 +94,13 @@ class ProductDetailActivity : AppCompatActivity() {
     private fun generateAndShareLabel() {
         val product = Product(
             outlet = "",
-            itemCode = intent.getStringExtra("item_code") ?: "",
-            barcode = intent.getStringExtra("barcode") ?: "",
-            articleNo = intent.getStringExtra("article_no") ?: "",
-            description = intent.getStringExtra("description") ?: "",
-            qoh = intent.getStringExtra("qoh") ?: "0",
-            price = intent.getStringExtra("price") ?: "0.00",
-            po = if (intent.getBooleanExtra("on_order", false)) "1" else "0"
+            itemCode = currentItemCode,
+            barcode = currentBarcode,
+            articleNo = currentArticleNo,
+            description = currentDescription,
+            qoh = currentQoh,
+            price = currentPrice,
+            po = if (currentOnOrder) "1" else "0"
         )
 
         try {
@@ -84,7 +108,6 @@ class ProductDetailActivity : AppCompatActivity() {
             if (uri != null) {
                 Toast.makeText(this, R.string.label_saved, Toast.LENGTH_SHORT).show()
 
-                // Offer to share/print
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/pdf"
                     putExtra(Intent.EXTRA_STREAM, uri)
@@ -103,12 +126,36 @@ class ProductDetailActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1001 && resultCode == RESULT_OK) {
             val scannedBarcode = data?.getStringExtra("barcode") ?: return
-            // Return the new barcode to MainActivity for lookup
-            val resultIntent = Intent().apply {
-                putExtra("barcode", scannedBarcode)
+            lookupAndDisplay(scannedBarcode)
+        }
+    }
+
+    private fun lookupAndDisplay(barcode: String) {
+        val outlet = prefsManager.selectedOutlet
+
+        lifecycleScope.launch {
+            val product = withContext(Dispatchers.IO) {
+                repository.findByBarcode(outlet, barcode)
+                    ?: repository.findByItemCode(outlet, barcode)
             }
-            setResult(RESULT_OK, resultIntent)
-            finish()
+
+            if (product != null) {
+                // Update current product data and refresh display
+                currentItemCode = product.itemCode
+                currentBarcode = product.barcode
+                currentArticleNo = product.articleNo
+                currentDescription = product.description
+                currentQoh = product.qoh
+                currentPrice = product.formattedPrice
+                currentOnOrder = product.isOnOrder
+                displayProductInfo()
+            } else {
+                Snackbar.make(
+                    binding.root,
+                    "${getString(R.string.no_product_found)}: $barcode",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            }
         }
     }
 }
