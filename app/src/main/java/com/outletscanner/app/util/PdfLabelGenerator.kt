@@ -67,56 +67,13 @@ object PdfLabelGenerator {
         canvas.drawRect(0.5f, 0.5f, width - 0.5f, height - 0.5f, borderPaint)
 
         val padding = 4f
-        val barcodeAreaWidth = 45f // Left area for barcode
+        val barcodeAreaWidth = 48f // Right area for barcode
+        val textAreaWidth = width - barcodeAreaWidth - padding * 2
 
-        // === LEFT SIDE: Barcode (rotated 90° counter-clockwise) ===
-        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 70, 30)
-        if (barcodeBitmap != null) {
-            // Rotate barcode 90° counter-clockwise
-            val matrix = Matrix()
-            matrix.postRotate(-90f)
-            val rotatedBarcode = Bitmap.createBitmap(
-                barcodeBitmap, 0, 0,
-                barcodeBitmap.width, barcodeBitmap.height,
-                matrix, true
-            )
-            // Draw rotated barcode on left side
-            val barcodeX = padding + 2f
-            val barcodeY = padding + 2f
-            canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
-            rotatedBarcode.recycle()
-            barcodeBitmap.recycle()
-        }
+        // === LEFT SIDE: Description + Price ===
+        val leftX = padding + 2f
 
-        // Barcode number (rotated, below barcode)
-        val barcodeNumPaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 5f
-            isAntiAlias = true
-            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
-        }
-        canvas.save()
-        canvas.rotate(-90f, padding + 38f, height / 2f)
-        canvas.drawText(product.barcode, padding + 38f - 30f, height / 2f + 2f, barcodeNumPaint)
-        canvas.restore()
-
-        // Article number below barcode number
-        val articlePaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 5.5f
-            isAntiAlias = true
-            isFakeBoldText = true
-        }
-        canvas.save()
-        canvas.rotate(-90f, padding + 43f, height / 2f)
-        canvas.drawText(product.articleNo, padding + 43f - 15f, height / 2f + 2f, articlePaint)
-        canvas.restore()
-
-        // === RIGHT SIDE: Description + Price ===
-        val rightX = barcodeAreaWidth + 4f
-        val rightWidth = width - rightX - padding
-
-        // Description (top right)
+        // Description (top left)
         val descPaint = Paint().apply {
             color = Color.BLACK
             textSize = 7f
@@ -124,7 +81,7 @@ object PdfLabelGenerator {
             isFakeBoldText = true
         }
 
-        var yPos = padding + 10f
+        var yPos = padding + 8f
 
         // Word wrap description into multiple lines
         val descWords = product.description.split(" ")
@@ -132,8 +89,8 @@ object PdfLabelGenerator {
         var lineCount = 0
         for (word in descWords) {
             val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
-            if (descPaint.measureText(testLine) > rightWidth && currentLine.isNotEmpty()) {
-                canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
+            if (descPaint.measureText(testLine) > textAreaWidth && currentLine.isNotEmpty()) {
+                canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
                 yPos += 9f
                 currentLine = StringBuilder(word)
                 lineCount++
@@ -143,40 +100,80 @@ object PdfLabelGenerator {
             }
         }
         if (currentLine.isNotEmpty() && lineCount < 3) {
-            canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
-            yPos += 12f
+            canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
+            yPos += 6f
         }
 
-        // Date (top right corner)
+        // Date (below description, left aligned)
         val datePaint = Paint().apply {
             color = Color.BLACK
             textSize = 5f
             isAntiAlias = true
-            textAlign = Paint.Align.RIGHT
         }
         val dateStr = SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date())
-        canvas.drawText(dateStr, width - padding, padding + 8f, datePaint)
+        canvas.drawText(dateStr, leftX, yPos + 6f, datePaint)
 
-        // "RM" currency label (top right area, above price)
+        // "RM" currency label
         val rmPaint = Paint().apply {
             color = Color.BLACK
-            textSize = 7f
+            textSize = 6f
             isAntiAlias = true
             textAlign = Paint.Align.RIGHT
         }
-        canvas.drawText("RM", width - padding, yPos + 4f, rmPaint)
+        canvas.drawText("RM", leftX + textAreaWidth, yPos + 6f, rmPaint)
 
         // Price - LARGE and bold
         val pricePaint = Paint().apply {
             color = Color.BLACK
-            textSize = 28f
+            textSize = 30f
             isAntiAlias = true
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
         }
-        val priceX = rightX + rightWidth / 2f
-        yPos += 28f
-        canvas.drawText(product.formattedPrice, priceX, yPos, pricePaint)
+        val priceX = leftX + textAreaWidth / 2f
+        canvas.drawText(product.formattedPrice, priceX, height - padding - 4f, pricePaint)
+
+        // === RIGHT SIDE: Barcode (rotated 90° counter-clockwise) ===
+        val barcodeStartX = width - barcodeAreaWidth
+        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 70, 30)
+        if (barcodeBitmap != null) {
+            val matrix = Matrix()
+            matrix.postRotate(-90f)
+            val rotatedBarcode = Bitmap.createBitmap(
+                barcodeBitmap, 0, 0,
+                barcodeBitmap.width, barcodeBitmap.height,
+                matrix, true
+            )
+            val barcodeX = barcodeStartX + 2f
+            val barcodeY = padding + 2f
+            canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
+            rotatedBarcode.recycle()
+            barcodeBitmap.recycle()
+        }
+
+        // Barcode number (rotated, next to barcode)
+        val barcodeNumPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 5f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+        }
+        canvas.save()
+        canvas.rotate(-90f, barcodeStartX + 36f, height / 2f)
+        canvas.drawText(product.barcode, barcodeStartX + 36f - 30f, height / 2f + 2f, barcodeNumPaint)
+        canvas.restore()
+
+        // Article number (rotated, next to barcode number)
+        val articlePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 5.5f
+            isAntiAlias = true
+            isFakeBoldText = true
+        }
+        canvas.save()
+        canvas.rotate(-90f, barcodeStartX + 42f, height / 2f)
+        canvas.drawText(product.articleNo, barcodeStartX + 42f - 15f, height / 2f + 2f, articlePaint)
+        canvas.restore()
     }
 
     /**
@@ -238,61 +235,13 @@ object PdfLabelGenerator {
         canvas.drawRect(1f, 1f, BITMAP_WIDTH - 1f, BITMAP_HEIGHT - 1f, borderPaint)
 
         val padding = 12f
-        val barcodeAreaWidth = 130f // Left area for barcode
+        val barcodeAreaWidth = 135f // Right area for barcode
+        val textAreaWidth = BITMAP_WIDTH - barcodeAreaWidth - padding * 2
 
-        // === LEFT SIDE: Barcode (rotated 90 CCW) ===
-        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 200, 80)
-        if (barcodeBitmap != null) {
-            val matrix = Matrix()
-            matrix.postRotate(-90f)
-            val rotatedBarcode = Bitmap.createBitmap(
-                barcodeBitmap, 0, 0,
-                barcodeBitmap.width, barcodeBitmap.height,
-                matrix, true
-            )
-            val barcodeX = padding + 4f
-            val barcodeY = padding + 4f
-            canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
-            rotatedBarcode.recycle()
-            barcodeBitmap.recycle()
-        }
+        // === LEFT SIDE: Description + Price ===
+        val leftX = padding + 4f
 
-        // Barcode number (rotated, alongside barcode)
-        val barcodeNumPaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 16f
-            isAntiAlias = true
-            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
-        }
-        canvas.save()
-        canvas.rotate(-90f, padding + 108f, BITMAP_HEIGHT / 2f)
-        canvas.drawText(product.barcode, padding + 108f - 90f, BITMAP_HEIGHT / 2f + 5f, barcodeNumPaint)
-        canvas.restore()
-
-        // Article number (rotated)
-        val articlePaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 18f
-            isAntiAlias = true
-            isFakeBoldText = true
-        }
-        canvas.save()
-        canvas.rotate(-90f, padding + 124f, BITMAP_HEIGHT / 2f)
-        canvas.drawText(product.articleNo, padding + 124f - 50f, BITMAP_HEIGHT / 2f + 5f, articlePaint)
-        canvas.restore()
-
-        // Vertical divider line between barcode area and text area
-        val dividerPaint = Paint().apply {
-            color = Color.BLACK
-            strokeWidth = 1.5f
-        }
-        canvas.drawLine(barcodeAreaWidth, padding, barcodeAreaWidth, BITMAP_HEIGHT - padding, dividerPaint)
-
-        // === RIGHT SIDE: Description + Price ===
-        val rightX = barcodeAreaWidth + 12f
-        val rightWidth = BITMAP_WIDTH - rightX - padding
-
-        // Description (top right)
+        // Description (top left)
         val descPaint = Paint().apply {
             color = Color.BLACK
             textSize = 22f
@@ -300,7 +249,7 @@ object PdfLabelGenerator {
             isFakeBoldText = true
         }
 
-        var yPos = padding + 28f
+        var yPos = padding + 26f
 
         // Word wrap description into multiple lines
         val descWords = product.description.split(" ")
@@ -308,8 +257,8 @@ object PdfLabelGenerator {
         var lineCount = 0
         for (word in descWords) {
             val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
-            if (descPaint.measureText(testLine) > rightWidth && currentLine.isNotEmpty()) {
-                canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
+            if (descPaint.measureText(testLine) > textAreaWidth && currentLine.isNotEmpty()) {
+                canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
                 yPos += 28f
                 currentLine = StringBuilder(word)
                 lineCount++
@@ -319,40 +268,80 @@ object PdfLabelGenerator {
             }
         }
         if (currentLine.isNotEmpty() && lineCount < 3) {
-            canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
-            yPos += 36f
+            canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
+            yPos += 18f
         }
 
-        // Date (top right corner)
+        // Date (below description, left aligned)
         val datePaint = Paint().apply {
             color = Color.BLACK
             textSize = 16f
             isAntiAlias = true
-            textAlign = Paint.Align.RIGHT
         }
         val dateStr = SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date())
-        canvas.drawText(dateStr, BITMAP_WIDTH - padding, padding + 24f, datePaint)
+        canvas.drawText(dateStr, leftX, yPos + 16f, datePaint)
 
-        // "RM" currency label
+        // "RM" currency label (right of text area)
         val rmPaint = Paint().apply {
             color = Color.BLACK
-            textSize = 22f
+            textSize = 20f
             isAntiAlias = true
             textAlign = Paint.Align.RIGHT
         }
-        canvas.drawText("RM", BITMAP_WIDTH - padding, yPos + 12f, rmPaint)
+        canvas.drawText("RM", leftX + textAreaWidth, yPos + 16f, rmPaint)
 
-        // Price - LARGE and bold
+        // Price - LARGE and bold (bottom left area)
         val pricePaint = Paint().apply {
             color = Color.BLACK
-            textSize = 80f
+            textSize = 85f
             isAntiAlias = true
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
         }
-        val priceX = rightX + rightWidth / 2f
-        yPos += 80f
-        canvas.drawText(product.formattedPrice, priceX, yPos, pricePaint)
+        val priceX = leftX + textAreaWidth / 2f
+        canvas.drawText(product.formattedPrice, priceX, BITMAP_HEIGHT - padding - 10f, pricePaint)
+
+        // === RIGHT SIDE: Barcode (rotated 90 CCW) ===
+        val barcodeStartX = BITMAP_WIDTH - barcodeAreaWidth
+        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 200, 80)
+        if (barcodeBitmap != null) {
+            val matrix = Matrix()
+            matrix.postRotate(-90f)
+            val rotatedBarcode = Bitmap.createBitmap(
+                barcodeBitmap, 0, 0,
+                barcodeBitmap.width, barcodeBitmap.height,
+                matrix, true
+            )
+            val barcodeX = barcodeStartX + 4f
+            val barcodeY = padding + 4f
+            canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
+            rotatedBarcode.recycle()
+            barcodeBitmap.recycle()
+        }
+
+        // Barcode number (rotated, next to barcode)
+        val barcodeNumPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 16f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+        }
+        canvas.save()
+        canvas.rotate(-90f, barcodeStartX + 100f, BITMAP_HEIGHT / 2f)
+        canvas.drawText(product.barcode, barcodeStartX + 100f - 90f, BITMAP_HEIGHT / 2f + 5f, barcodeNumPaint)
+        canvas.restore()
+
+        // Article number (rotated, next to barcode number)
+        val articlePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 18f
+            isAntiAlias = true
+            isFakeBoldText = true
+        }
+        canvas.save()
+        canvas.rotate(-90f, barcodeStartX + 120f, BITMAP_HEIGHT / 2f)
+        canvas.drawText(product.articleNo, barcodeStartX + 120f - 50f, BITMAP_HEIGHT / 2f + 5f, articlePaint)
+        canvas.restore()
 
         return bitmap
     }
