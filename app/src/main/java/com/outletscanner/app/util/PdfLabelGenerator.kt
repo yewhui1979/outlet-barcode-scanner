@@ -101,37 +101,34 @@ object PdfLabelGenerator {
         }
         if (currentLine.isNotEmpty() && lineCount < 3) {
             canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
-            yPos += 6f
+            yPos += 4f
         }
 
-        // Date (below description, left aligned)
+        // Price - LARGE and bold (right after description)
+        val pricePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 30f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        canvas.drawText(product.formattedPrice, leftX, height - padding - 16f, pricePaint)
+
+        // "RM" currency label (below price)
+        val rmPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 6f
+            isAntiAlias = true
+        }
+        canvas.drawText("RM", leftX, height - padding - 8f, rmPaint)
+
+        // Date (bottom of label)
         val datePaint = Paint().apply {
             color = Color.BLACK
             textSize = 5f
             isAntiAlias = true
         }
         val dateStr = SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date())
-        canvas.drawText(dateStr, leftX, yPos + 6f, datePaint)
-
-        // "RM" currency label
-        val rmPaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 6f
-            isAntiAlias = true
-            textAlign = Paint.Align.RIGHT
-        }
-        canvas.drawText("RM", leftX + textAreaWidth, yPos + 6f, rmPaint)
-
-        // Price - LARGE and bold
-        val pricePaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 30f
-            isAntiAlias = true
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textAlign = Paint.Align.CENTER
-        }
-        val priceX = leftX + textAreaWidth / 2f
-        canvas.drawText(product.formattedPrice, priceX, height - padding - 4f, pricePaint)
+        canvas.drawText(dateStr, leftX, height - padding, datePaint)
 
         // === RIGHT SIDE: Barcode (rotated 90° counter-clockwise) ===
         val barcodeStartX = width - barcodeAreaWidth
@@ -269,37 +266,34 @@ object PdfLabelGenerator {
         }
         if (currentLine.isNotEmpty() && lineCount < 3) {
             canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
-            yPos += 18f
+            yPos += 10f
         }
 
-        // Date (below description, left aligned)
+        // Price - LARGE and bold (right after description)
+        val pricePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 85f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        canvas.drawText(product.formattedPrice, leftX, BITMAP_HEIGHT - padding - 50f, pricePaint)
+
+        // "RM" currency label (below price)
+        val rmPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 20f
+            isAntiAlias = true
+        }
+        canvas.drawText("RM", leftX, BITMAP_HEIGHT - padding - 24f, rmPaint)
+
+        // Date (bottom of label)
         val datePaint = Paint().apply {
             color = Color.BLACK
             textSize = 16f
             isAntiAlias = true
         }
         val dateStr = SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date())
-        canvas.drawText(dateStr, leftX, yPos + 16f, datePaint)
-
-        // "RM" currency label (right of text area)
-        val rmPaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 20f
-            isAntiAlias = true
-            textAlign = Paint.Align.RIGHT
-        }
-        canvas.drawText("RM", leftX + textAreaWidth, yPos + 16f, rmPaint)
-
-        // Price - LARGE and bold (bottom left area)
-        val pricePaint = Paint().apply {
-            color = Color.BLACK
-            textSize = 85f
-            isAntiAlias = true
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textAlign = Paint.Align.CENTER
-        }
-        val priceX = leftX + textAreaWidth / 2f
-        canvas.drawText(product.formattedPrice, priceX, BITMAP_HEIGHT - padding - 10f, pricePaint)
+        canvas.drawText(dateStr, leftX, BITMAP_HEIGHT - padding - 4f, datePaint)
 
         // === RIGHT SIDE: Barcode (rotated 90 CCW) ===
         val barcodeStartX = BITMAP_WIDTH - barcodeAreaWidth
