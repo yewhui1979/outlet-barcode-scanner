@@ -16,6 +16,8 @@ class PrefsManager(context: Context) {
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_CURRENT_USERNAME = "current_username"
         private const val KEY_CURRENT_ROLE = "current_role"
+        private const val KEY_PRINTER_ADDRESS = "saved_printer_address"
+        private const val KEY_PRINTER_NAME = "saved_printer_name"
 
         val OUTLETS = listOf(
             "AJB", "AM", "ASP", "BG", "BM",
@@ -53,6 +55,14 @@ class PrefsManager(context: Context) {
     var currentRole: String
         get() = prefs.getString(KEY_CURRENT_ROLE, "") ?: ""
         set(value) = prefs.edit().putString(KEY_CURRENT_ROLE, value).apply()
+
+    var savedPrinterAddress: String
+        get() = prefs.getString(KEY_PRINTER_ADDRESS, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_PRINTER_ADDRESS, value).apply()
+
+    var savedPrinterName: String
+        get() = prefs.getString(KEY_PRINTER_NAME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_PRINTER_NAME, value).apply()
 
     fun clear() {
         prefs.edit().clear().apply()

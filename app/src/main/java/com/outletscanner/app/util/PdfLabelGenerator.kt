@@ -209,6 +209,154 @@ object PdfLabelGenerator {
         }
     }
 
+    // Bitmap label dimensions for 203 DPI thermal printer (6cm x 3.3cm)
+    private const val BITMAP_WIDTH = 480   // 6cm at 203 DPI
+    private const val BITMAP_HEIGHT = 264  // 3.3cm at 203 DPI
+
+    /**
+     * Render the shelf label as a Bitmap for direct Bluetooth thermal printing.
+     * Same layout as the PDF label but rendered at 203 DPI for the Rongta RPP320.
+     * Size: 480 x 264 pixels (6cm x 3.3cm at 203 DPI)
+     */
+    fun renderLabelBitmap(product: Product): Bitmap {
+        val bitmap = Bitmap.createBitmap(BITMAP_WIDTH, BITMAP_HEIGHT, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        // White background
+        val bgPaint = Paint().apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+        }
+        canvas.drawRect(0f, 0f, BITMAP_WIDTH.toFloat(), BITMAP_HEIGHT.toFloat(), bgPaint)
+
+        // Thin border
+        val borderPaint = Paint().apply {
+            color = Color.BLACK
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+        canvas.drawRect(1f, 1f, BITMAP_WIDTH - 1f, BITMAP_HEIGHT - 1f, borderPaint)
+
+        val padding = 12f
+        val barcodeAreaWidth = 130f // Left area for barcode
+
+        // === LEFT SIDE: Barcode (rotated 90 CCW) ===
+        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 200, 80)
+        if (barcodeBitmap != null) {
+            val matrix = Matrix()
+            matrix.postRotate(-90f)
+            val rotatedBarcode = Bitmap.createBitmap(
+                barcodeBitmap, 0, 0,
+                barcodeBitmap.width, barcodeBitmap.height,
+                matrix, true
+            )
+            val barcodeX = padding + 4f
+            val barcodeY = padding + 4f
+            canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
+            rotatedBarcode.recycle()
+            barcodeBitmap.recycle()
+        }
+
+        // Barcode number (rotated, alongside barcode)
+        val barcodeNumPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 16f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+        }
+        canvas.save()
+        canvas.rotate(-90f, padding + 108f, BITMAP_HEIGHT / 2f)
+        canvas.drawText(product.barcode, padding + 108f - 90f, BITMAP_HEIGHT / 2f + 5f, barcodeNumPaint)
+        canvas.restore()
+
+        // Article number (rotated)
+        val articlePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 18f
+            isAntiAlias = true
+            isFakeBoldText = true
+        }
+        canvas.save()
+        canvas.rotate(-90f, padding + 124f, BITMAP_HEIGHT / 2f)
+        canvas.drawText(product.articleNo, padding + 124f - 50f, BITMAP_HEIGHT / 2f + 5f, articlePaint)
+        canvas.restore()
+
+        // Vertical divider line between barcode area and text area
+        val dividerPaint = Paint().apply {
+            color = Color.BLACK
+            strokeWidth = 1.5f
+        }
+        canvas.drawLine(barcodeAreaWidth, padding, barcodeAreaWidth, BITMAP_HEIGHT - padding, dividerPaint)
+
+        // === RIGHT SIDE: Description + Price ===
+        val rightX = barcodeAreaWidth + 12f
+        val rightWidth = BITMAP_WIDTH - rightX - padding
+
+        // Description (top right)
+        val descPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 22f
+            isAntiAlias = true
+            isFakeBoldText = true
+        }
+
+        var yPos = padding + 28f
+
+        // Word wrap description into multiple lines
+        val descWords = product.description.split(" ")
+        var currentLine = StringBuilder()
+        var lineCount = 0
+        for (word in descWords) {
+            val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+            if (descPaint.measureText(testLine) > rightWidth && currentLine.isNotEmpty()) {
+                canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
+                yPos += 28f
+                currentLine = StringBuilder(word)
+                lineCount++
+                if (lineCount >= 2) break
+            } else {
+                currentLine = StringBuilder(testLine)
+            }
+        }
+        if (currentLine.isNotEmpty() && lineCount < 3) {
+            canvas.drawText(currentLine.toString(), rightX, yPos, descPaint)
+            yPos += 36f
+        }
+
+        // Date (top right corner)
+        val datePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 16f
+            isAntiAlias = true
+            textAlign = Paint.Align.RIGHT
+        }
+        val dateStr = SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date())
+        canvas.drawText(dateStr, BITMAP_WIDTH - padding, padding + 24f, datePaint)
+
+        // "RM" currency label
+        val rmPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 22f
+            isAntiAlias = true
+            textAlign = Paint.Align.RIGHT
+        }
+        canvas.drawText("RM", BITMAP_WIDTH - padding, yPos + 12f, rmPaint)
+
+        // Price - LARGE and bold
+        val pricePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 80f
+            isAntiAlias = true
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
+        }
+        val priceX = rightX + rightWidth / 2f
+        yPos += 80f
+        canvas.drawText(product.formattedPrice, priceX, yPos, pricePaint)
+
+        return bitmap
+    }
+
     private fun savePdf(context: Context, document: PdfDocument, product: Product): Uri? {
         val fileName = "ShelfLabel_${product.itemCode}_${System.currentTimeMillis()}.pdf"
 
