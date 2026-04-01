@@ -37,13 +37,12 @@ class DataSyncManager(private val context: Context) {
             throw IllegalStateException("Server URL not configured. Go to Settings to set it up.")
         }
 
-        // Build the URL - try to download the file for this outlet
-        // The server should serve files at: {serverUrl}/{OUTLET}_latest.txt
-        // or we try the direct URL if it already contains the file name
+        // Build the URL - download the file for this outlet
+        // Server serves files at: {serverUrl}/data/{OUTLET}.txt
         val url = if (serverUrl.endsWith(".txt", ignoreCase = true)) {
             serverUrl
         } else {
-            "$serverUrl/${outlet}_latest.txt"
+            "$serverUrl/data/${outlet}.txt"
         }
 
         val request = Request.Builder()

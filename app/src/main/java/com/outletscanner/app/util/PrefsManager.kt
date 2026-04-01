@@ -19,6 +19,8 @@ class PrefsManager(context: Context) {
         private const val KEY_PRINTER_ADDRESS = "saved_printer_address"
         private const val KEY_PRINTER_NAME = "saved_printer_name"
 
+        const val DEFAULT_SERVER_URL = "http://43.216.228.22"
+
         val OUTLETS = listOf(
             "AJB", "AM", "ASP", "BG", "BM",
             "DAD", "ENS",
@@ -37,7 +39,7 @@ class PrefsManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_OUTLET, value).apply()
 
     var serverUrl: String
-        get() = prefs.getString(KEY_SERVER_URL, "") ?: ""
+        get() = prefs.getString(KEY_SERVER_URL, DEFAULT_SERVER_URL) ?: DEFAULT_SERVER_URL
         set(value) = prefs.edit().putString(KEY_SERVER_URL, value).apply()
 
     var lastSyncTimestamp: String
