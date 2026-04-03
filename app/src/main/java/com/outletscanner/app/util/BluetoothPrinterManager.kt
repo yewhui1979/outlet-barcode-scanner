@@ -211,11 +211,9 @@ class BluetoothPrinterManager(private val context: Context) {
             // Initialize printer
             os.write(CMD_INIT)
 
-            // Set left margin to center the label on paper
+            // Set small left margin to compensate for printer's non-printable left edge
             // GS L nL nH - Set left margin in dots
-            // Print head = 576 dots, bitmap width comes from the actual bitmap
-            // Margin = (576 - bitmapWidth) / 2
-            val leftMargin = (576 - bitmap.width) / 2
+            val leftMargin = 8
             os.write(byteArrayOf(
                 0x1D, 0x4C,
                 (leftMargin and 0xFF).toByte(),
