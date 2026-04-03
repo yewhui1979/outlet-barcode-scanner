@@ -211,8 +211,16 @@ class BluetoothPrinterManager(private val context: Context) {
             // Initialize printer
             os.write(CMD_INIT)
 
-            // Set center alignment: ESC a 1
-            os.write(byteArrayOf(0x1B, 0x61, 0x01))
+            // Set left margin to center the label on paper
+            // GS L nL nH - Set left margin in dots
+            // Print head = 576 dots, bitmap width comes from the actual bitmap
+            // Margin = (576 - bitmapWidth) / 2
+            val leftMargin = (576 - bitmap.width) / 2
+            os.write(byteArrayOf(
+                0x1D, 0x4C,
+                (leftMargin and 0xFF).toByte(),
+                ((leftMargin shr 8) and 0xFF).toByte()
+            ))
 
             // Convert bitmap to monochrome byte data
             val width = bitmap.width
@@ -263,8 +271,8 @@ class BluetoothPrinterManager(private val context: Context) {
                 os.write(rowBuffer)
             }
 
-            // Reset alignment to left
-            os.write(byteArrayOf(0x1B, 0x61, 0x00))
+            // Reset left margin to 0
+            os.write(byteArrayOf(0x1D, 0x4C, 0x00, 0x00))
 
             // Feed some lines after the image
             os.write(CMD_FEED_LINES)
