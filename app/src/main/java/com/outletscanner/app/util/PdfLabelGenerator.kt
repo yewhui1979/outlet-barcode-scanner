@@ -224,8 +224,9 @@ object PdfLabelGenerator {
         }
         canvas.drawRect(0f, 0f, PRINTER_WIDTH.toFloat(), BITMAP_HEIGHT.toFloat(), bgPaint)
 
-        // Offset to center label content within full printer width
-        val oX = (PRINTER_WIDTH - BITMAP_WIDTH) / 2f  // = 96
+        // Offset to center label content on 80mm paper (print head is 72mm, paper wider)
+        // Extra 24 dots shifts content right to account for paper extending beyond print head
+        val oX = (PRINTER_WIDTH - BITMAP_WIDTH) / 2f + 24f  // = 120
 
         // Thin border around the label content area
         val borderPaint = Paint().apply {
