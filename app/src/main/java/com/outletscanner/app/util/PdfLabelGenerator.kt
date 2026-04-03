@@ -204,41 +204,43 @@ object PdfLabelGenerator {
     }
 
     // Bitmap dimensions for Rongta RPP320 thermal printer (203 DPI)
-    // Print head width = 576 dots (72mm). Margin set via ESC/POS GS L command.
-    private const val PRINTER_WIDTH = 576  // Full print head width (for margin calc)
+    private const val PRINTER_WIDTH = 576  // Full print head width (72mm)
     private const val BITMAP_WIDTH = 384   // Label content width (~48mm)
     private const val BITMAP_HEIGHT = 212  // Label content height
 
     /**
      * Render the shelf label as a Bitmap for direct Bluetooth thermal printing.
-     * Same layout as the PDF label but rendered at 203 DPI for the Rongta RPP320.
-     * Centering is handled by the printer via GS L left margin command.
+     * Bitmap is full printer width (576px). Content (384px) is centered via offsetX.
+     * No ESC/POS margin commands needed - centering is baked into the bitmap.
      */
     fun renderLabelBitmap(product: Product): Bitmap {
-        val bitmap = Bitmap.createBitmap(BITMAP_WIDTH, BITMAP_HEIGHT, Bitmap.Config.ARGB_8888)
+        val bitmap = Bitmap.createBitmap(PRINTER_WIDTH, BITMAP_HEIGHT, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // White background
+        // White background (full printer width)
         val bgPaint = Paint().apply {
             color = Color.WHITE
             style = Paint.Style.FILL
         }
-        canvas.drawRect(0f, 0f, BITMAP_WIDTH.toFloat(), BITMAP_HEIGHT.toFloat(), bgPaint)
+        canvas.drawRect(0f, 0f, PRINTER_WIDTH.toFloat(), BITMAP_HEIGHT.toFloat(), bgPaint)
 
-        // Thin border around the label
+        // Offset to center label content within full printer width
+        val oX = (PRINTER_WIDTH - BITMAP_WIDTH) / 2f  // = 96
+
+        // Thin border around the label content area
         val borderPaint = Paint().apply {
             color = Color.BLACK
             style = Paint.Style.STROKE
             strokeWidth = 2f
         }
-        canvas.drawRect(1f, 1f, BITMAP_WIDTH - 1f, BITMAP_HEIGHT - 1f, borderPaint)
+        canvas.drawRect(oX + 1f, 1f, oX + BITMAP_WIDTH - 1f, BITMAP_HEIGHT - 1f, borderPaint)
 
         val padding = 8f
-        val barcodeAreaWidth = 110f // Right area for barcode
+        val barcodeAreaWidth = 110f
         val textAreaWidth = BITMAP_WIDTH - barcodeAreaWidth - padding * 2
 
         // === LEFT SIDE: Description + Price ===
-        val leftX = padding + 4f
+        val leftX = oX + padding + 4f
 
         // Description (top left)
         val descPaint = Paint().apply {
@@ -297,8 +299,8 @@ object PdfLabelGenerator {
         canvas.drawText(dateStr, leftX, BITMAP_HEIGHT - padding - 2f, datePaint)
 
         // === RIGHT SIDE: Barcode (rotated 90 CCW) ===
-        val barcodeStartX = BITMAP_WIDTH - barcodeAreaWidth
-        // Generate barcode at high resolution (540x180) for thin bars, then scale down
+        val barcodeStartX = oX + BITMAP_WIDTH - barcodeAreaWidth
+        // Generate barcode at high resolution for thin bars, then scale down
         val barcodeBitmap = generateBarcodeBitmap(product.barcode, 540, 180)
         if (barcodeBitmap != null) {
             val matrix = Matrix()
@@ -308,7 +310,6 @@ object PdfLabelGenerator {
                 barcodeBitmap.width, barcodeBitmap.height,
                 matrix, true
             )
-            // Target size: 60 wide x 180 tall (same layout as before, but higher quality)
             val targetW = 60f
             val targetH = 180f
             val barcodeX = barcodeStartX + 4f

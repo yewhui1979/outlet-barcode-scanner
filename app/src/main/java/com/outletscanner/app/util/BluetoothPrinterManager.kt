@@ -211,15 +211,6 @@ class BluetoothPrinterManager(private val context: Context) {
             // Initialize printer
             os.write(CMD_INIT)
 
-            // Set small left margin to compensate for printer's non-printable left edge
-            // GS L nL nH - Set left margin in dots
-            val leftMargin = 8
-            os.write(byteArrayOf(
-                0x1D, 0x4C,
-                (leftMargin and 0xFF).toByte(),
-                ((leftMargin shr 8) and 0xFF).toByte()
-            ))
-
             // Convert bitmap to monochrome byte data
             val width = bitmap.width
             val height = bitmap.height
@@ -268,9 +259,6 @@ class BluetoothPrinterManager(private val context: Context) {
 
                 os.write(rowBuffer)
             }
-
-            // Reset left margin to 0
-            os.write(byteArrayOf(0x1D, 0x4C, 0x00, 0x00))
 
             // Feed some lines after the image
             os.write(CMD_FEED_LINES)
