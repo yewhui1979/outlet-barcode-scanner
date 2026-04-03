@@ -211,6 +211,9 @@ class BluetoothPrinterManager(private val context: Context) {
             // Initialize printer
             os.write(CMD_INIT)
 
+            // Set center alignment: ESC a 1
+            os.write(byteArrayOf(0x1B, 0x61, 0x01))
+
             // Convert bitmap to monochrome byte data
             val width = bitmap.width
             val height = bitmap.height
@@ -259,6 +262,9 @@ class BluetoothPrinterManager(private val context: Context) {
 
                 os.write(rowBuffer)
             }
+
+            // Reset alignment to left
+            os.write(byteArrayOf(0x1B, 0x61, 0x00))
 
             // Feed some lines after the image
             os.write(CMD_FEED_LINES)
