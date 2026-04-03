@@ -203,9 +203,10 @@ object PdfLabelGenerator {
         }
     }
 
-    // Bitmap label dimensions for 203 DPI thermal printer (6cm x 3.3cm)
-    private const val BITMAP_WIDTH = 480   // 6cm at 203 DPI
-    private const val BITMAP_HEIGHT = 264  // 3.3cm at 203 DPI
+    // Bitmap label dimensions for 203 DPI thermal printer
+    // Reduced width to fit within printable area of Rongta RPP320
+    private const val BITMAP_WIDTH = 384   // ~48mm printable width
+    private const val BITMAP_HEIGHT = 212  // proportional height for 6:3.3 ratio
 
     /**
      * Render the shelf label as a Bitmap for direct Bluetooth thermal printing.
@@ -231,8 +232,8 @@ object PdfLabelGenerator {
         }
         canvas.drawRect(1f, 1f, BITMAP_WIDTH - 1f, BITMAP_HEIGHT - 1f, borderPaint)
 
-        val padding = 12f
-        val barcodeAreaWidth = 135f // Right area for barcode
+        val padding = 8f
+        val barcodeAreaWidth = 110f // Right area for barcode
         val textAreaWidth = BITMAP_WIDTH - barcodeAreaWidth - padding * 2
 
         // === LEFT SIDE: Description + Price ===
@@ -241,12 +242,12 @@ object PdfLabelGenerator {
         // Description (top left)
         val descPaint = Paint().apply {
             color = Color.BLACK
-            textSize = 22f
+            textSize = 18f
             isAntiAlias = true
             isFakeBoldText = true
         }
 
-        var yPos = padding + 26f
+        var yPos = padding + 20f
 
         // Word wrap description into multiple lines
         val descWords = product.description.split(" ")
@@ -256,7 +257,7 @@ object PdfLabelGenerator {
             val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
             if (descPaint.measureText(testLine) > textAreaWidth && currentLine.isNotEmpty()) {
                 canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
-                yPos += 28f
+                yPos += 22f
                 currentLine = StringBuilder(word)
                 lineCount++
                 if (lineCount >= 2) break
@@ -266,38 +267,38 @@ object PdfLabelGenerator {
         }
         if (currentLine.isNotEmpty() && lineCount < 3) {
             canvas.drawText(currentLine.toString(), leftX, yPos, descPaint)
-            yPos += 10f
         }
 
-        // Price - LARGE and bold (right after description)
+        // Price - LARGE and bold
         val pricePaint = Paint().apply {
             color = Color.BLACK
-            textSize = 85f
+            textSize = 65f
             isAntiAlias = true
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         }
-        canvas.drawText(product.formattedPrice, leftX, BITMAP_HEIGHT - padding - 50f, pricePaint)
+        canvas.drawText(product.formattedPrice, leftX, BITMAP_HEIGHT - padding - 36f, pricePaint)
 
         // "RM" currency label (below price)
         val rmPaint = Paint().apply {
             color = Color.BLACK
-            textSize = 20f
+            textSize = 16f
             isAntiAlias = true
         }
-        canvas.drawText("RM", leftX, BITMAP_HEIGHT - padding - 24f, rmPaint)
+        canvas.drawText("RM", leftX, BITMAP_HEIGHT - padding - 18f, rmPaint)
 
         // Date (bottom of label)
         val datePaint = Paint().apply {
             color = Color.BLACK
-            textSize = 16f
+            textSize = 14f
             isAntiAlias = true
         }
         val dateStr = SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date())
-        canvas.drawText(dateStr, leftX, BITMAP_HEIGHT - padding - 4f, datePaint)
+        canvas.drawText(dateStr, leftX, BITMAP_HEIGHT - padding - 2f, datePaint)
 
         // === RIGHT SIDE: Barcode (rotated 90 CCW) ===
         val barcodeStartX = BITMAP_WIDTH - barcodeAreaWidth
-        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 200, 80)
+        // Larger barcode: 180 wide x 60 tall, when rotated becomes 60 wide x 180 tall
+        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 180, 60)
         if (barcodeBitmap != null) {
             val matrix = Matrix()
             matrix.postRotate(-90f)
@@ -306,8 +307,9 @@ object PdfLabelGenerator {
                 barcodeBitmap.width, barcodeBitmap.height,
                 matrix, true
             )
+            // Center the barcode vertically in the right area
             val barcodeX = barcodeStartX + 4f
-            val barcodeY = padding + 4f
+            val barcodeY = (BITMAP_HEIGHT - rotatedBarcode.height) / 2f
             canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
             rotatedBarcode.recycle()
             barcodeBitmap.recycle()
@@ -316,25 +318,25 @@ object PdfLabelGenerator {
         // Barcode number (rotated, next to barcode)
         val barcodeNumPaint = Paint().apply {
             color = Color.BLACK
-            textSize = 16f
+            textSize = 13f
             isAntiAlias = true
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
         }
         canvas.save()
-        canvas.rotate(-90f, barcodeStartX + 100f, BITMAP_HEIGHT / 2f)
-        canvas.drawText(product.barcode, barcodeStartX + 100f - 90f, BITMAP_HEIGHT / 2f + 5f, barcodeNumPaint)
+        canvas.rotate(-90f, barcodeStartX + 74f, BITMAP_HEIGHT / 2f)
+        canvas.drawText(product.barcode, barcodeStartX + 74f - 80f, BITMAP_HEIGHT / 2f + 4f, barcodeNumPaint)
         canvas.restore()
 
         // Article number (rotated, next to barcode number)
         val articlePaint = Paint().apply {
             color = Color.BLACK
-            textSize = 18f
+            textSize = 14f
             isAntiAlias = true
             isFakeBoldText = true
         }
         canvas.save()
-        canvas.rotate(-90f, barcodeStartX + 120f, BITMAP_HEIGHT / 2f)
-        canvas.drawText(product.articleNo, barcodeStartX + 120f - 50f, BITMAP_HEIGHT / 2f + 5f, articlePaint)
+        canvas.rotate(-90f, barcodeStartX + 92f, BITMAP_HEIGHT / 2f)
+        canvas.drawText(product.articleNo, barcodeStartX + 92f - 40f, BITMAP_HEIGHT / 2f + 4f, articlePaint)
         canvas.restore()
 
         return bitmap

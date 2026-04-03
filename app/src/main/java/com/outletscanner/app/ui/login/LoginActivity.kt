@@ -12,6 +12,7 @@ import com.outletscanner.app.data.repository.ProductRepository
 import com.outletscanner.app.databinding.ActivityLoginBinding
 import com.outletscanner.app.ui.main.MainActivity
 import com.outletscanner.app.util.PrefsManager
+import com.outletscanner.app.util.ServerUserManager
 import com.outletscanner.app.util.UserManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,12 +23,14 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private lateinit var prefsManager: PrefsManager
     private lateinit var userManager: UserManager
+    private lateinit var serverUserManager: ServerUserManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         prefsManager = PrefsManager(this)
         userManager = UserManager(this)
+        serverUserManager = ServerUserManager(this)
 
         // Skip login if already logged in
         if (prefsManager.isLoggedIn && prefsManager.selectedOutlet.isNotBlank() &&
@@ -63,40 +66,50 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val user = userManager.authenticate(username, password)
-            if (user == null) {
-                showError(getString(R.string.invalid_credentials))
-                return@setOnClickListener
-            }
+            binding.btnLogin.isEnabled = false
+            binding.btnLogin.text = "Logging in..."
 
-            // Authentication successful
-            userManager.setCurrentUser(user.username)
-            prefsManager.currentUsername = user.username
-            prefsManager.currentRole = user.role
+            // Try server authentication first, fall back to local
+            lifecycleScope.launch {
+                val user = serverUserManager.authenticate(username, password)
+                    ?: userManager.authenticate(username, password)
 
-            hideError()
-
-            // Show outlet selection phase
-            binding.tilUsername.isEnabled = false
-            binding.tilPassword.isEnabled = false
-            binding.btnLogin.visibility = View.GONE
-
-            setupOutletDropdown()
-            binding.tilOutlet.visibility = View.VISIBLE
-            binding.btnEnter.visibility = View.VISIBLE
-
-            when (user.role) {
-                UserManager.ROLE_USER -> {
-                    // User role: lock to assigned store
-                    binding.actvOutlet.setText(user.assignedStore, false)
-                    binding.actvOutlet.isEnabled = false
-                    binding.tilOutlet.isEnabled = false
+                if (user == null) {
+                    binding.btnLogin.isEnabled = true
+                    binding.btnLogin.text = getString(R.string.login)
+                    showError(getString(R.string.invalid_credentials))
+                    return@launch
                 }
-                else -> {
-                    // Admin and Superuser: can select any store
-                    val savedOutlet = prefsManager.selectedOutlet
-                    if (savedOutlet.isNotBlank()) {
-                        binding.actvOutlet.setText(savedOutlet, false)
+
+                // Authentication successful
+                userManager.setCurrentUser(user.username)
+                prefsManager.currentUsername = user.username
+                prefsManager.currentRole = user.role
+
+                hideError()
+
+                // Show outlet selection phase
+                binding.tilUsername.isEnabled = false
+                binding.tilPassword.isEnabled = false
+                binding.btnLogin.visibility = View.GONE
+
+                setupOutletDropdown()
+                binding.tilOutlet.visibility = View.VISIBLE
+                binding.btnEnter.visibility = View.VISIBLE
+
+                when (user.role) {
+                    ServerUserManager.ROLE_USER -> {
+                        // User role: lock to assigned store
+                        binding.actvOutlet.setText(user.assignedStore, false)
+                        binding.actvOutlet.isEnabled = false
+                        binding.tilOutlet.isEnabled = false
+                    }
+                    else -> {
+                        // Admin and Superuser: can select any store
+                        val savedOutlet = prefsManager.selectedOutlet
+                        if (savedOutlet.isNotBlank()) {
+                            binding.actvOutlet.setText(savedOutlet, false)
+                        }
                     }
                 }
             }

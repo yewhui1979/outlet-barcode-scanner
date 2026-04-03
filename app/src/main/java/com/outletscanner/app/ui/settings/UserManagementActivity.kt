@@ -8,8 +8,10 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.launch
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -17,6 +19,7 @@ import com.outletscanner.app.R
 import com.outletscanner.app.databinding.ActivityUserManagementBinding
 import com.outletscanner.app.databinding.ItemUserBinding
 import com.outletscanner.app.util.PrefsManager
+import com.outletscanner.app.util.ServerUserManager
 import com.outletscanner.app.util.User
 import com.outletscanner.app.util.UserManager
 
@@ -24,6 +27,7 @@ class UserManagementActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityUserManagementBinding
     private lateinit var userManager: UserManager
+    private lateinit var serverUserManager: ServerUserManager
     private lateinit var adapter: UserAdapter
     private var currentUsername: String = ""
 
@@ -33,6 +37,7 @@ class UserManagementActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         userManager = UserManager(this)
+        serverUserManager = ServerUserManager(this)
         currentUsername = userManager.getCurrentUser()?.username
             ?: PrefsManager(this).currentUsername
 
@@ -60,9 +65,14 @@ class UserManagementActivity : AppCompatActivity() {
     }
 
     private fun loadUsers() {
-        val users = userManager.getAllUsers()
-        adapter.submitList(users)
-        binding.tvEmpty.visibility = if (users.isEmpty()) View.VISIBLE else View.GONE
+        lifecycleScope.launch {
+            // Try server first, fall back to local
+            val users = serverUserManager.getAllUsers().ifEmpty {
+                userManager.getAllUsers()
+            }
+            adapter.submitList(users)
+            binding.tvEmpty.visibility = if (users.isEmpty()) View.VISIBLE else View.GONE
+        }
     }
 
     private fun showAddUserDialog() {
@@ -105,12 +115,17 @@ class UserManagementActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
 
-                val success = userManager.addUser(username, password, role, store)
-                if (success) {
-                    Toast.makeText(this, R.string.user_added, Toast.LENGTH_SHORT).show()
-                    loadUsers()
-                } else {
-                    Toast.makeText(this, R.string.username_exists, Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch {
+                    // Add to server first, then local as backup
+                    val serverSuccess = serverUserManager.addUser(username, password, role, store)
+                    val localSuccess = userManager.addUser(username, password, role, store)
+
+                    if (serverSuccess || localSuccess) {
+                        Toast.makeText(this@UserManagementActivity, R.string.user_added, Toast.LENGTH_SHORT).show()
+                        loadUsers()
+                    } else {
+                        Toast.makeText(this@UserManagementActivity, R.string.username_exists, Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
             .setNegativeButton(R.string.cancel, null)
@@ -122,9 +137,12 @@ class UserManagementActivity : AppCompatActivity() {
             .setTitle(R.string.delete_user)
             .setMessage(getString(R.string.confirm_delete_user, user.username))
             .setPositiveButton(R.string.confirm) { _, _ ->
-                userManager.removeUser(user.username)
-                Toast.makeText(this, R.string.user_deleted, Toast.LENGTH_SHORT).show()
-                loadUsers()
+                lifecycleScope.launch {
+                    serverUserManager.removeUser(user.username)
+                    userManager.removeUser(user.username)
+                    Toast.makeText(this@UserManagementActivity, R.string.user_deleted, Toast.LENGTH_SHORT).show()
+                    loadUsers()
+                }
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
