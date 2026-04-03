@@ -303,8 +303,8 @@ object PdfLabelGenerator {
 
         // === RIGHT SIDE: Barcode (rotated 90 CCW) ===
         val barcodeStartX = offsetX + BITMAP_WIDTH - barcodeAreaWidth
-        // Larger barcode: 180 wide x 60 tall, when rotated becomes 60 wide x 180 tall
-        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 180, 60)
+        // Generate barcode at high resolution (540x180) for thin bars, then scale down
+        val barcodeBitmap = generateBarcodeBitmap(product.barcode, 540, 180)
         if (barcodeBitmap != null) {
             val matrix = Matrix()
             matrix.postRotate(-90f)
@@ -313,10 +313,13 @@ object PdfLabelGenerator {
                 barcodeBitmap.width, barcodeBitmap.height,
                 matrix, true
             )
-            // Center the barcode vertically in the right area
+            // Target size: 60 wide x 180 tall (same layout as before, but higher quality)
+            val targetW = 60f
+            val targetH = 180f
             val barcodeX = barcodeStartX + 4f
-            val barcodeY = (BITMAP_HEIGHT - rotatedBarcode.height) / 2f
-            canvas.drawBitmap(rotatedBarcode, barcodeX, barcodeY, null)
+            val barcodeY = (BITMAP_HEIGHT - targetH) / 2f
+            val destRect = android.graphics.RectF(barcodeX, barcodeY, barcodeX + targetW, barcodeY + targetH)
+            canvas.drawBitmap(rotatedBarcode, null, destRect, Paint(Paint.FILTER_BITMAP_FLAG))
             rotatedBarcode.recycle()
             barcodeBitmap.recycle()
         }
