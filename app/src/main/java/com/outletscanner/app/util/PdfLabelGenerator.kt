@@ -227,13 +227,7 @@ object PdfLabelGenerator {
         // No offset needed - bitmap fills full paper width
         val oX = (PRINTER_WIDTH - BITMAP_WIDTH) / 2f  // = 8
 
-        // Thin border around the label
-        val borderPaint = Paint().apply {
-            color = Color.BLACK
-            style = Paint.Style.STROKE
-            strokeWidth = 2f
-        }
-        canvas.drawRect(oX + 1f, 1f, oX + BITMAP_WIDTH - 1f, BITMAP_HEIGHT - 1f, borderPaint)
+        // No border - clean label without rectangle outline
 
         val padding = 12f
         val barcodeAreaWidth = 150f
