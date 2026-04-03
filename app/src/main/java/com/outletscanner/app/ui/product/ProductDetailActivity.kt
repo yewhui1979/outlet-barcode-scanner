@@ -378,11 +378,14 @@ class ProductDetailActivity : AppCompatActivity() {
                 currentOnOrder = product.isOnOrder
                 displayProductInfo()
             } else {
-                Snackbar.make(
-                    binding.root,
-                    "${getString(R.string.no_product_found)}: $barcode",
-                    Snackbar.LENGTH_LONG
-                ).show()
+                MaterialAlertDialogBuilder(this@ProductDetailActivity)
+                    .setTitle("Scan Failed")
+                    .setMessage("Product not found for barcode: $barcode")
+                    .setPositiveButton("OK") { _, _ ->
+                        finish() // Go back to main screen
+                    }
+                    .setCancelable(false)
+                    .show()
             }
         }
     }

@@ -33,7 +33,8 @@ class UserManagementActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         userManager = UserManager(this)
-        currentUsername = userManager.getCurrentUser()?.username ?: ""
+        currentUsername = userManager.getCurrentUser()?.username
+            ?: PrefsManager(this).currentUsername
 
         setupToolbar()
         setupRecyclerView()

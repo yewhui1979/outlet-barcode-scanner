@@ -40,6 +40,8 @@ class ScannerActivity : AppCompatActivity() {
     private lateinit var barcodeScanner: BarcodeScanner
     private val isScanned = AtomicBoolean(false)
     private val zxingReader = MultiFormatReader()
+    private var lastFrameTime = 0L
+    private val FRAME_INTERVAL_MS = 500L // Process frames every 500ms to reduce sensitivity
 
     companion object {
         private const val TAG = "ScannerActivity"
@@ -208,6 +210,14 @@ class ScannerActivity : AppCompatActivity() {
             return
         }
 
+        // Throttle frame processing to reduce sensitivity
+        val now = System.currentTimeMillis()
+        if (now - lastFrameTime < FRAME_INTERVAL_MS) {
+            imageProxy.close()
+            return
+        }
+        lastFrameTime = now
+
         val mediaImage = imageProxy.image
         if (mediaImage != null) {
             // Try ML Kit first
@@ -218,8 +228,15 @@ class ScannerActivity : AppCompatActivity() {
 
             barcodeScanner.process(image)
                 .addOnSuccessListener { barcodes ->
-                    for (barcode in barcodes) {
-                        val value = barcode.rawValue
+                    // Reject if multiple barcodes detected (ambiguous scan)
+                    val validBarcodes = barcodes.filter { !it.rawValue.isNullOrBlank() }
+                    if (validBarcodes.size > 1) {
+                        Log.w(TAG, "Multiple barcodes detected (${validBarcodes.size}), rejecting")
+                        return@addOnSuccessListener
+                    }
+
+                    if (validBarcodes.size == 1) {
+                        val value = validBarcodes[0].rawValue
                         if (!value.isNullOrBlank() && isScanned.compareAndSet(false, true)) {
                             Log.d(TAG, "ML Kit detected barcode: $value")
                             onBarcodeDetected(value)
@@ -256,9 +273,16 @@ class ScannerActivity : AppCompatActivity() {
             val width = imageProxy.width
             val height = imageProxy.height
 
+            // Crop to center region matching the blue guide lines
+            // Scan only the middle 60% width and 40% height of the frame
+            val cropWidth = (width * 0.6).toInt()
+            val cropHeight = (height * 0.4).toInt()
+            val cropLeft = (width - cropWidth) / 2
+            val cropTop = (height - cropHeight) / 2
+
             val source = PlanarYUVLuminanceSource(
                 bytes, width, height,
-                0, 0, width, height,
+                cropLeft, cropTop, cropWidth, cropHeight,
                 false
             )
 

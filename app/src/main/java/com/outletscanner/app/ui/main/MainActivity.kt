@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.outletscanner.app.R
 import com.outletscanner.app.data.repository.ProductRepository
@@ -274,11 +275,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 startActivity(intent)
             } else {
-                Snackbar.make(
-                    binding.root,
-                    "${getString(R.string.no_product_found)}: $barcode",
-                    Snackbar.LENGTH_LONG
-                ).show()
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle("Scan Failed")
+                    .setMessage("Product not found for barcode: $barcode")
+                    .setPositiveButton("OK", null)
+                    .show()
             }
         }
     }
