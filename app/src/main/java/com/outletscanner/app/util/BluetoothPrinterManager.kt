@@ -33,7 +33,7 @@ class BluetoothPrinterManager(private val context: Context) {
 
         // ESC/POS commands
         private val CMD_INIT = byteArrayOf(0x1B, 0x40)             // ESC @ - Initialize printer
-        private val CMD_FEED_LINES = byteArrayOf(0x1B, 0x64, 0x00) // ESC d 0 - No extra feed
+        private val CMD_FEED_LINES = byteArrayOf(0x1B, 0x64, 0x01) // ESC d 1 - Small gap for cutting
         private val CMD_CUT = byteArrayOf(0x1D, 0x56, 0x00)        // GS V 0 - Full cut (if supported)
     }
 
@@ -210,6 +210,11 @@ class BluetoothPrinterManager(private val context: Context) {
 
             // Initialize printer
             os.write(CMD_INIT)
+
+            // Pre-feed: advance paper 2 lines so the sensor calibrates paper position
+            // This prevents misalignment on the first print after connecting
+            os.write(byteArrayOf(0x1B, 0x64, 0x02))
+            os.flush()
 
             // Convert bitmap to monochrome byte data
             val width = bitmap.width
