@@ -207,7 +207,7 @@ object PdfLabelGenerator {
     // Full print head = 576 dots. Content (384px) centered within it.
     private const val PRINTER_WIDTH = 576  // Full print head width
     private const val BITMAP_WIDTH = 384   // Label content width
-    private const val BITMAP_HEIGHT = 264  // ~33mm height for shelf label
+    private const val BITMAP_HEIGHT = 210  // Compact height, minimal white space
 
     /**
      * Render the shelf label as a Bitmap for direct Bluetooth thermal printing.
