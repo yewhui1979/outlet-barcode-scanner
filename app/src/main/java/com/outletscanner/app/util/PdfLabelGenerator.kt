@@ -207,7 +207,7 @@ object PdfLabelGenerator {
     // Full print head = 576 dots. Content (384px) centered within it.
     private const val PRINTER_WIDTH = 576  // Full print head width
     private const val BITMAP_WIDTH = 384   // Label content width
-    private const val BITMAP_HEIGHT = 210  // Compact height, minimal white space
+    private const val BITMAP_HEIGHT = 230  // Compact but fits all content
 
     /**
      * Render the shelf label as a Bitmap for direct Bluetooth thermal printing.
@@ -304,7 +304,7 @@ object PdfLabelGenerator {
                 matrix, true
             )
             val targetW = 65f
-            val targetH = 220f
+            val targetH = 200f
             val barcodeX = barcodeStartX + 4f
             val barcodeY = (BITMAP_HEIGHT - targetH) / 2f
             val destRect = android.graphics.RectF(barcodeX, barcodeY, barcodeX + targetW, barcodeY + targetH)
