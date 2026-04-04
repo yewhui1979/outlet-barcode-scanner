@@ -203,10 +203,10 @@ object PdfLabelGenerator {
         }
     }
 
-    // Bitmap dimensions for Rongta RPP320 thermal printer (203 DPI, 58mm paper)
-    // Printable width = ~384 dots (48mm). Label fills full paper width.
-    private const val PRINTER_WIDTH = 384  // Actual printable width for 58mm paper
-    private const val BITMAP_WIDTH = 384   // Fill full paper width
+    // Bitmap dimensions for Rongta RPP320 thermal printer (203 DPI, 80mm paper)
+    // Full print head = 576 dots. Content (384px) centered within it.
+    private const val PRINTER_WIDTH = 576  // Full print head width
+    private const val BITMAP_WIDTH = 384   // Label content width
     private const val BITMAP_HEIGHT = 264  // ~33mm height for shelf label
 
     /**
@@ -225,8 +225,8 @@ object PdfLabelGenerator {
         }
         canvas.drawRect(0f, 0f, PRINTER_WIDTH.toFloat(), BITMAP_HEIGHT.toFloat(), bgPaint)
 
-        // No offset - bitmap fills full paper width
-        val oX = 0f
+        // Center content within full print head width
+        val oX = (PRINTER_WIDTH - BITMAP_WIDTH) / 2f + 24f  // ~120 dots offset
 
         val padding = 6f
         val barcodeAreaWidth = 115f
