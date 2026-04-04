@@ -33,8 +33,11 @@ class BluetoothPrinterManager(private val context: Context) {
 
         // ESC/POS commands
         private val CMD_INIT = byteArrayOf(0x1B, 0x40)             // ESC @ - Initialize printer
-        private val CMD_FEED_LINES = byteArrayOf(0x1B, 0x64, 0x01) // ESC d 1 - Small gap for cutting
+        private val CMD_FEED_LINES = byteArrayOf(0x1B, 0x64, 0x01) // ESC d 1 - Small gap
         private val CMD_CUT = byteArrayOf(0x1D, 0x56, 0x00)        // GS V 0 - Full cut (if supported)
+        // Black mark paper commands
+        private val CMD_BLACK_MARK_ON = byteArrayOf(0x1B, 0x63, 0x36, 0x04)  // ESC c 6 4 - Enable black mark sensor
+        private val CMD_FEED_TO_MARK = byteArrayOf(0x0C)            // FF - Form feed to next black mark
     }
 
     enum class ConnectionState {
@@ -211,9 +214,11 @@ class BluetoothPrinterManager(private val context: Context) {
             // Initialize printer
             os.write(CMD_INIT)
 
-            // Pre-feed: advance paper 2 lines so the sensor calibrates paper position
-            // This prevents misalignment on the first print after connecting
-            os.write(byteArrayOf(0x1B, 0x64, 0x02))
+            // Enable black mark sensor for label paper
+            os.write(CMD_BLACK_MARK_ON)
+
+            // Feed to next black mark to align paper before printing
+            os.write(CMD_FEED_TO_MARK)
             os.flush()
 
             // Convert bitmap to monochrome byte data
@@ -265,8 +270,8 @@ class BluetoothPrinterManager(private val context: Context) {
                 os.write(rowBuffer)
             }
 
-            // Feed some lines after the image
-            os.write(CMD_FEED_LINES)
+            // Feed to next black mark (positions paper for next label)
+            os.write(CMD_FEED_TO_MARK)
             os.flush()
 
             Log.d(TAG, "Bitmap printed successfully: ${width}x${height} pixels, $widthBytes bytes/row")
