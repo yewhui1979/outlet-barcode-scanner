@@ -11,6 +11,7 @@ import com.outletscanner.app.R
 import com.outletscanner.app.data.repository.ProductRepository
 import com.outletscanner.app.databinding.ActivityLoginBinding
 import com.outletscanner.app.ui.main.MainActivity
+import com.outletscanner.app.util.DataSyncManager
 import com.outletscanner.app.util.PrefsManager
 import com.outletscanner.app.util.ServerUserManager
 import com.outletscanner.app.util.UserManager
@@ -179,6 +180,35 @@ class LoginActivity : AppCompatActivity() {
                 } catch (e: Exception) {
                     // Ignore - sample data is optional
                 }
+            }
+
+            // Auto sync from server after sign-in
+            autoSyncFromServer(outlet)
+        }
+    }
+
+    private fun autoSyncFromServer(outlet: String) {
+        val syncManager = DataSyncManager(this)
+
+        Toast.makeText(this, "Syncing data from server...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            try {
+                val syncCount = withContext(Dispatchers.IO) {
+                    syncManager.syncData(outlet)
+                }
+                Toast.makeText(
+                    this@LoginActivity,
+                    "Synced $syncCount items",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: Exception) {
+                // Sync failed - not critical, user can sync manually later
+                Toast.makeText(
+                    this@LoginActivity,
+                    "Auto sync skipped - will try later",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
 
             navigateToMain()
