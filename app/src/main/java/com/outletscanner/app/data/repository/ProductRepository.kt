@@ -45,9 +45,8 @@ class ProductRepository(context: Context) {
     /**
      * Parse a pipe-delimited input stream and bulk insert into the database.
      * Designed for efficiency with 400K+ rows - uses batch inserts of 5000 rows.
+     * Supports both old and new sync file formats via header-based column mapping.
      * Returns the total number of rows inserted.
-     * The onProgress callback receives (rowsProcessed, estimatedTotal) where
-     * estimatedTotal may be -1 if unknown.
      */
     suspend fun parseAndInsert(
         inputStream: InputStream,
@@ -60,8 +59,8 @@ class ProductRepository(context: Context) {
         val reader = BufferedReader(InputStreamReader(inputStream), 1024 * 64) // 64KB buffer
         var headerLine = reader.readLine() ?: return@withContext 0
 
-        // Validate header
-        val headers = headerLine.split("|").map { it.trim().lowercase() }
+        // Validate header - normalize: lowercase, trim, replace spaces with underscores
+        val headers = headerLine.split("|").map { it.trim().lowercase().replace(" ", "_") }
         val headerMap = headers.mapIndexed { index, name -> name to index }.toMap()
 
         val batch = mutableListOf<Product>()
@@ -89,22 +88,45 @@ class ProductRepository(context: Context) {
                     barcode = getField(fields, headerMap, "barcode", ""),
                     articleNo = getField(fields, headerMap, "articleno", ""),
                     description = getField(fields, headerMap, "description", ""),
+                    itemStatus = getField(fields, headerMap, "item_status", ""),
+                    packSize = getField(fields, headerMap, "packsize", ""),
+                    bulkQty = getField(fields, headerMap, "bulkqty", ""),
                     qoh = getField(fields, headerMap, "qoh", "0"),
+                    department = getField(fields, headerMap, "department", ""),
+                    subDepartment = getField(fields, headerMap, "sub_department", ""),
+                    category = getField(fields, headerMap, "category", ""),
                     price = getField(fields, headerMap, "price", "0.00"),
+                    promoId = getField(fields, headerMap, "promoid", ""),
+                    promoDateFrom = getField(fields, headerMap, "promodatefrom", ""),
+                    promoDateTo = getField(fields, headerMap, "promodateto", ""),
+                    promoPrice = getField(fields, headerMap, "promoprice", ""),
+                    promoFlag = getField(fields, headerMap, "promoflag", "N"),
+                    promoSaving = getField(fields, headerMap, "promosaving", ""),
+                    effectivePrice = getField(fields, headerMap, "effectiveprice", ""),
                     retailExt = getField(fields, headerMap, "retail_ext", ""),
-                    fifoCost = getField(fields, headerMap, "fifo cost", ""),
-                    fifoTotal = getField(fields, headerMap, "fifo total", ""),
-                    fifoGp = getField(fields, headerMap, "fifo gp%", ""),
-                    lastCost = getField(fields, headerMap, "last cost", ""),
-                    lastCostTotal = getField(fields, headerMap, "lastcost total", ""),
-                    lastCostGp = getField(fields, headerMap, "lastcost gp%", ""),
-                    po = getField(fields, headerMap, "po", "0"),
+                    fifoCost = getField(fields, headerMap, "fifo_cost", ""),
+                    fifoTotal = getField(fields, headerMap, "fifo_total", ""),
+                    fifoGp = getField(fields, headerMap, "fifo_gp%", ""),
+                    lastCost = getField(fields, headerMap, "last_cost", ""),
+                    lastCostTotal = getField(fields, headerMap, "lastcost_total", ""),
+                    lastCostGp = getField(fields, headerMap, "lastcost_gp%", ""),
+                    averageCost = getField(fields, headerMap, "averagecost", ""),
+                    listedCost = getField(fields, headerMap, "listedcost", ""),
+                    minQty = getField(fields, headerMap, "min_qty", ""),
+                    maxQty = getField(fields, headerMap, "max_qty", ""),
+                    po = getFieldMulti(fields, headerMap, listOf("qty_po", "po"), "0"),
                     cpo = getField(fields, headerMap, "cpo", "0"),
                     so = getField(fields, headerMap, "so", "0"),
                     ibt = getField(fields, headerMap, "ibt", "0"),
                     dn = getField(fields, headerMap, "dn", "0"),
                     cn = getField(fields, headerMap, "cn", "0"),
-                    pos = getField(fields, headerMap, "pos", "0")
+                    pos = getField(fields, headerMap, "pos", "0"),
+                    qtyReq = getField(fields, headerMap, "qty_req", ""),
+                    qtyTbr = getField(fields, headerMap, "qty_tbr", ""),
+                    lastGrQty = getField(fields, headerMap, "last_gr_qty", ""),
+                    lastGrDate = getField(fields, headerMap, "last_gr_date", ""),
+                    lastGrVendor = getField(fields, headerMap, "last_gr_vendor", ""),
+                    vendorName = getField(fields, headerMap, "vendor_name", "")
                 )
 
                 if (product.barcode.isNotBlank() || product.itemCode.isNotBlank()) {
@@ -143,5 +165,21 @@ class ProductRepository(context: Context) {
     ): String {
         val index = headerMap[key] ?: return default
         return if (index < fields.size) fields[index].trim() else default
+    }
+
+    /** Try multiple header names in order (for fields that changed names between formats) */
+    private fun getFieldMulti(
+        fields: List<String>,
+        headerMap: Map<String, Int>,
+        keys: List<String>,
+        default: String
+    ): String {
+        for (key in keys) {
+            val index = headerMap[key]
+            if (index != null && index < fields.size) {
+                return fields[index].trim()
+            }
+        }
+        return default
     }
 }

@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.outletscanner.app.R
+import com.outletscanner.app.data.model.Product
 import com.outletscanner.app.data.repository.ProductRepository
 import com.outletscanner.app.databinding.ActivityMainBinding
 import com.outletscanner.app.ui.product.ProductDetailActivity
@@ -160,16 +161,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (product != null) {
-                val intent = Intent(this@MainActivity, ProductDetailActivity::class.java).apply {
-                    putExtra("item_code", product.itemCode)
-                    putExtra("barcode", product.barcode)
-                    putExtra("article_no", product.articleNo)
-                    putExtra("description", product.description)
-                    putExtra("qoh", product.qoh)
-                    putExtra("price", product.formattedPrice)
-                    putExtra("on_order", product.isOnOrder)
-                }
-                startActivity(intent)
+                startActivity(buildProductDetailIntent(product))
                 binding.etSearch.text?.clear()
             } else {
                 Snackbar.make(binding.root, R.string.no_product_found, Snackbar.LENGTH_SHORT).show()
@@ -256,6 +248,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun buildProductDetailIntent(product: Product): Intent {
+        return Intent(this, ProductDetailActivity::class.java).apply {
+            putExtra("item_code", product.itemCode)
+            putExtra("barcode", product.barcode)
+            putExtra("article_no", product.articleNo)
+            putExtra("description", product.description)
+            putExtra("qoh", product.qoh)
+            putExtra("price", product.formattedPrice)
+            putExtra("on_order", product.isOnOrder)
+            putExtra("item_status", product.itemStatus)
+            putExtra("pack_size", product.packSize)
+            putExtra("department", product.department)
+            putExtra("sub_department", product.subDepartment)
+            putExtra("category", product.category)
+            putExtra("effective_price", product.formattedEffectivePrice)
+            putExtra("promo_price", product.formattedPromoPrice)
+            putExtra("promo_date_from", product.promoDateFrom)
+            putExtra("promo_date_to", product.promoDateTo)
+            putExtra("promo_saving", product.promoSaving)
+            putExtra("promo_flag", product.promoFlag)
+            putExtra("vendor_name", product.vendorName)
+            putExtra("last_gr_date", product.lastGrDate)
+            putExtra("last_gr_qty", product.lastGrQty)
+            putExtra("last_cost", product.lastCost)
+            putExtra("average_cost", product.averageCost)
+        }
+    }
+
     private fun lookupBarcode(barcode: String) {
         lifecycleScope.launch {
             val product = withContext(Dispatchers.IO) {
@@ -264,16 +284,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (product != null) {
-                val intent = Intent(this@MainActivity, ProductDetailActivity::class.java).apply {
-                    putExtra("item_code", product.itemCode)
-                    putExtra("barcode", product.barcode)
-                    putExtra("article_no", product.articleNo)
-                    putExtra("description", product.description)
-                    putExtra("qoh", product.qoh)
-                    putExtra("price", product.formattedPrice)
-                    putExtra("on_order", product.isOnOrder)
-                }
-                startActivity(intent)
+                startActivity(buildProductDetailIntent(product))
             } else {
                 MaterialAlertDialogBuilder(this@MainActivity)
                     .setTitle("Scan Failed")

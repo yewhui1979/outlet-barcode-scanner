@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,6 +44,22 @@ class ProductDetailActivity : AppCompatActivity() {
     private var currentQoh = "0"
     private var currentPrice = "0.00"
     private var currentOnOrder = false
+    private var currentItemStatus = ""
+    private var currentPackSize = ""
+    private var currentDepartment = ""
+    private var currentSubDepartment = ""
+    private var currentCategory = ""
+    private var currentEffectivePrice = ""
+    private var currentPromoPrice = ""
+    private var currentPromoDateFrom = ""
+    private var currentPromoDateTo = ""
+    private var currentPromoSaving = ""
+    private var currentPromoFlag = "N"
+    private var currentVendorName = ""
+    private var currentLastGrDate = ""
+    private var currentLastGrQty = ""
+    private var currentLastCost = ""
+    private var currentAverageCost = ""
 
     private val bluetoothPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -78,6 +95,22 @@ class ProductDetailActivity : AppCompatActivity() {
         currentQoh = intent.getStringExtra("qoh") ?: "0"
         currentPrice = intent.getStringExtra("price") ?: "0.00"
         currentOnOrder = intent.getBooleanExtra("on_order", false)
+        currentItemStatus = intent.getStringExtra("item_status") ?: ""
+        currentPackSize = intent.getStringExtra("pack_size") ?: ""
+        currentDepartment = intent.getStringExtra("department") ?: ""
+        currentSubDepartment = intent.getStringExtra("sub_department") ?: ""
+        currentCategory = intent.getStringExtra("category") ?: ""
+        currentEffectivePrice = intent.getStringExtra("effective_price") ?: ""
+        currentPromoPrice = intent.getStringExtra("promo_price") ?: ""
+        currentPromoDateFrom = intent.getStringExtra("promo_date_from") ?: ""
+        currentPromoDateTo = intent.getStringExtra("promo_date_to") ?: ""
+        currentPromoSaving = intent.getStringExtra("promo_saving") ?: ""
+        currentPromoFlag = intent.getStringExtra("promo_flag") ?: "N"
+        currentVendorName = intent.getStringExtra("vendor_name") ?: ""
+        currentLastGrDate = intent.getStringExtra("last_gr_date") ?: ""
+        currentLastGrQty = intent.getStringExtra("last_gr_qty") ?: ""
+        currentLastCost = intent.getStringExtra("last_cost") ?: ""
+        currentAverageCost = intent.getStringExtra("average_cost") ?: ""
     }
 
     private fun setupToolbar() {
@@ -99,6 +132,105 @@ class ProductDetailActivity : AppCompatActivity() {
         } else {
             binding.tvOnOrder.text = getString(R.string.no)
             binding.tvOnOrder.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+        }
+
+        // Item Status badge
+        if (currentItemStatus.isNotBlank()) {
+            binding.tvItemStatus.text = currentItemStatus
+            binding.tvItemStatus.visibility = View.VISIBLE
+            when (currentItemStatus.lowercase()) {
+                "active" -> {
+                    binding.tvItemStatus.setTextColor(0xFF2E7D32.toInt())
+                    binding.tvItemStatus.setBackgroundColor(0xFFE8F5E9.toInt())
+                }
+                "disabled", "delisted" -> {
+                    binding.tvItemStatus.setTextColor(0xFFC62828.toInt())
+                    binding.tvItemStatus.setBackgroundColor(0xFFFFEBEE.toInt())
+                }
+                else -> {
+                    binding.tvItemStatus.setTextColor(0xFF757575.toInt())
+                    binding.tvItemStatus.setBackgroundColor(0xFFF5F5F5.toInt())
+                }
+            }
+        } else {
+            binding.tvItemStatus.visibility = View.GONE
+        }
+
+        // Effective Price
+        if (currentEffectivePrice.isNotBlank() && currentEffectivePrice != "0" && currentEffectivePrice != currentPrice) {
+            binding.rowEffectivePrice.visibility = View.VISIBLE
+            binding.tvEffectivePrice.text = currentEffectivePrice
+        }
+
+        // Promo card
+        val isPromo = currentPromoFlag.trim().uppercase() == "Y" || currentPromoPrice.isNotBlank()
+        if (isPromo) {
+            binding.cardPromo.visibility = View.VISIBLE
+
+            if (currentPromoPrice.isNotBlank()) {
+                binding.rowPromoPrice.visibility = View.VISIBLE
+                binding.tvPromoPrice.text = "RM $currentPromoPrice"
+            }
+            if (currentPromoDateFrom.isNotBlank() || currentPromoDateTo.isNotBlank()) {
+                binding.rowPromoPeriod.visibility = View.VISIBLE
+                binding.tvPromoPeriod.text = "$currentPromoDateFrom - $currentPromoDateTo"
+            }
+            if (currentPromoSaving.isNotBlank() && currentPromoSaving != "0" && currentPromoSaving != "0.0") {
+                binding.rowPromoSaving.visibility = View.VISIBLE
+                binding.tvPromoSaving.text = "RM $currentPromoSaving"
+            }
+        }
+
+        // Classification card
+        val hasClassification = currentDepartment.isNotBlank() || currentSubDepartment.isNotBlank() ||
+                currentCategory.isNotBlank() || currentPackSize.isNotBlank()
+        if (hasClassification) {
+            binding.cardClassification.visibility = View.VISIBLE
+
+            if (currentDepartment.isNotBlank()) {
+                binding.rowDepartment.visibility = View.VISIBLE
+                binding.tvDepartment.text = currentDepartment
+            }
+            if (currentSubDepartment.isNotBlank()) {
+                binding.rowSubDepartment.visibility = View.VISIBLE
+                binding.tvSubDepartment.text = currentSubDepartment
+            }
+            if (currentCategory.isNotBlank()) {
+                binding.rowCategory.visibility = View.VISIBLE
+                binding.tvCategory.text = currentCategory
+            }
+            if (currentPackSize.isNotBlank() && currentPackSize != "0" && currentPackSize != "1.0") {
+                binding.rowPackSize.visibility = View.VISIBLE
+                binding.tvPackSize.text = currentPackSize
+            }
+        }
+
+        // Supply card
+        val hasSupply = currentVendorName.isNotBlank() || currentLastGrDate.isNotBlank() ||
+                currentLastCost.isNotBlank() || currentAverageCost.isNotBlank()
+        if (hasSupply) {
+            binding.cardSupply.visibility = View.VISIBLE
+
+            if (currentVendorName.isNotBlank()) {
+                binding.rowVendor.visibility = View.VISIBLE
+                binding.tvVendor.text = currentVendorName
+            }
+            if (currentLastGrDate.isNotBlank() && !currentLastGrDate.startsWith("1000")) {
+                binding.rowLastGrDate.visibility = View.VISIBLE
+                binding.tvLastGrDate.text = currentLastGrDate
+            }
+            if (currentLastGrQty.isNotBlank() && currentLastGrQty != "0" && currentLastGrQty != "0.0") {
+                binding.rowLastGrQty.visibility = View.VISIBLE
+                binding.tvLastGrQty.text = currentLastGrQty
+            }
+            if (currentLastCost.isNotBlank() && currentLastCost != "0") {
+                binding.rowLastCost.visibility = View.VISIBLE
+                binding.tvLastCost.text = currentLastCost
+            }
+            if (currentAverageCost.isNotBlank() && currentAverageCost != "0") {
+                binding.rowAvgCost.visibility = View.VISIBLE
+                binding.tvAvgCost.text = currentAverageCost
+            }
         }
     }
 
@@ -345,7 +477,13 @@ class ProductDetailActivity : AppCompatActivity() {
             description = currentDescription,
             qoh = currentQoh,
             price = currentPrice,
-            po = if (currentOnOrder) "1" else "0"
+            po = if (currentOnOrder) "1" else "0",
+            effectivePrice = currentEffectivePrice,
+            promoPrice = currentPromoPrice,
+            promoDateFrom = currentPromoDateFrom,
+            promoDateTo = currentPromoDateTo,
+            promoSaving = currentPromoSaving,
+            promoFlag = currentPromoFlag
         )
     }
 
@@ -369,13 +507,7 @@ class ProductDetailActivity : AppCompatActivity() {
             }
 
             if (product != null) {
-                currentItemCode = product.itemCode
-                currentBarcode = product.barcode
-                currentArticleNo = product.articleNo
-                currentDescription = product.description
-                currentQoh = product.qoh
-                currentPrice = product.formattedPrice
-                currentOnOrder = product.isOnOrder
+                loadFromProduct(product)
                 displayProductInfo()
             } else {
                 MaterialAlertDialogBuilder(this@ProductDetailActivity)
@@ -388,6 +520,32 @@ class ProductDetailActivity : AppCompatActivity() {
                     .show()
             }
         }
+    }
+
+    private fun loadFromProduct(product: Product) {
+        currentItemCode = product.itemCode
+        currentBarcode = product.barcode
+        currentArticleNo = product.articleNo
+        currentDescription = product.description
+        currentQoh = product.qoh
+        currentPrice = product.formattedPrice
+        currentOnOrder = product.isOnOrder
+        currentItemStatus = product.itemStatus
+        currentPackSize = product.packSize
+        currentDepartment = product.department
+        currentSubDepartment = product.subDepartment
+        currentCategory = product.category
+        currentEffectivePrice = product.formattedEffectivePrice
+        currentPromoPrice = product.formattedPromoPrice
+        currentPromoDateFrom = product.promoDateFrom
+        currentPromoDateTo = product.promoDateTo
+        currentPromoSaving = product.promoSaving
+        currentPromoFlag = product.promoFlag
+        currentVendorName = product.vendorName
+        currentLastGrDate = product.lastGrDate
+        currentLastGrQty = product.lastGrQty
+        currentLastCost = product.lastCost
+        currentAverageCost = product.averageCost
     }
 
     override fun onDestroy() {

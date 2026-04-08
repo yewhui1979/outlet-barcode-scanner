@@ -12,8 +12,8 @@ android {
         applicationId = "com.outletscanner.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 18
-        versionName = "1.3.8"
+        versionCode = 19
+        versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
