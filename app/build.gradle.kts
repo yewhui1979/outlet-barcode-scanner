@@ -8,6 +8,15 @@ android {
     namespace = "com.outletscanner.app"
     compileSdk = 34
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("skuchecker.keystore")
+            storePassword = "skuchecker123"
+            keyAlias = "skuchecker"
+            keyPassword = "skuchecker123"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.outletscanner.app"
         minSdk = 24
@@ -20,6 +29,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
