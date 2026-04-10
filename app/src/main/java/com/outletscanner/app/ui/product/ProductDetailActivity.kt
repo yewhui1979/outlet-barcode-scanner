@@ -36,30 +36,41 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var prefsManager: PrefsManager
     private lateinit var printerManager: BluetoothPrinterManager
 
-    // Current product data
-    private var currentItemCode = ""
-    private var currentBarcode = ""
-    private var currentArticleNo = ""
-    private var currentDescription = ""
-    private var currentQoh = "0"
-    private var currentPrice = "0.00"
-    private var currentOnOrder = false
-    private var currentItemStatus = ""
-    private var currentPackSize = ""
-    private var currentDepartment = ""
-    private var currentSubDepartment = ""
-    private var currentCategory = ""
-    private var currentEffectivePrice = ""
-    private var currentPromoPrice = ""
-    private var currentPromoDateFrom = ""
-    private var currentPromoDateTo = ""
-    private var currentPromoSaving = ""
-    private var currentPromoFlag = "N"
-    private var currentVendorName = ""
-    private var currentLastGrDate = ""
-    private var currentLastGrQty = ""
-    private var currentLastCost = ""
-    private var currentAverageCost = ""
+    // All 34 product fields
+    private var fOutlet = ""
+    private var fItemCode = ""
+    private var fItemLink = ""
+    private var fBarcode = ""
+    private var fArticleNo = ""
+    private var fDescription = ""
+    private var fItemStatus = ""
+    private var fPackSize = ""
+    private var fBulkQty = ""
+    private var fQoh = "0"
+    private var fDepartment = ""
+    private var fSubDepartment = ""
+    private var fCategory = ""
+    private var fPrice = "0.00"
+    private var fPromoId = ""
+    private var fPromoDateFrom = ""
+    private var fPromoDateTo = ""
+    private var fPromoPrice = ""
+    private var fPromoFlag = ""
+    private var fPromoSaving = ""
+    private var fEffectivePrice = ""
+    private var fFifoCost = ""
+    private var fLastCost = ""
+    private var fAverageCost = ""
+    private var fListedCost = ""
+    private var fMinQty = ""
+    private var fMaxQty = ""
+    private var fQtyPo = ""
+    private var fQtyReq = ""
+    private var fQtyTbr = ""
+    private var fLastGrQty = ""
+    private var fLastGrDate = ""
+    private var fLastGrVendor = ""
+    private var fVendorName = ""
 
     private val bluetoothPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -88,29 +99,40 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun loadFromIntent() {
-        currentItemCode = intent.getStringExtra("item_code") ?: ""
-        currentBarcode = intent.getStringExtra("barcode") ?: ""
-        currentArticleNo = intent.getStringExtra("article_no") ?: ""
-        currentDescription = intent.getStringExtra("description") ?: ""
-        currentQoh = intent.getStringExtra("qoh") ?: "0"
-        currentPrice = intent.getStringExtra("price") ?: "0.00"
-        currentOnOrder = intent.getBooleanExtra("on_order", false)
-        currentItemStatus = intent.getStringExtra("item_status") ?: ""
-        currentPackSize = intent.getStringExtra("pack_size") ?: ""
-        currentDepartment = intent.getStringExtra("department") ?: ""
-        currentSubDepartment = intent.getStringExtra("sub_department") ?: ""
-        currentCategory = intent.getStringExtra("category") ?: ""
-        currentEffectivePrice = intent.getStringExtra("effective_price") ?: ""
-        currentPromoPrice = intent.getStringExtra("promo_price") ?: ""
-        currentPromoDateFrom = intent.getStringExtra("promo_date_from") ?: ""
-        currentPromoDateTo = intent.getStringExtra("promo_date_to") ?: ""
-        currentPromoSaving = intent.getStringExtra("promo_saving") ?: ""
-        currentPromoFlag = intent.getStringExtra("promo_flag") ?: "N"
-        currentVendorName = intent.getStringExtra("vendor_name") ?: ""
-        currentLastGrDate = intent.getStringExtra("last_gr_date") ?: ""
-        currentLastGrQty = intent.getStringExtra("last_gr_qty") ?: ""
-        currentLastCost = intent.getStringExtra("last_cost") ?: ""
-        currentAverageCost = intent.getStringExtra("average_cost") ?: ""
+        fOutlet = intent.getStringExtra("outlet") ?: prefsManager.selectedOutlet
+        fItemCode = intent.getStringExtra("item_code") ?: ""
+        fItemLink = intent.getStringExtra("item_link") ?: ""
+        fBarcode = intent.getStringExtra("barcode") ?: ""
+        fArticleNo = intent.getStringExtra("article_no") ?: ""
+        fDescription = intent.getStringExtra("description") ?: ""
+        fItemStatus = intent.getStringExtra("item_status") ?: ""
+        fPackSize = intent.getStringExtra("pack_size") ?: ""
+        fBulkQty = intent.getStringExtra("bulk_qty") ?: ""
+        fQoh = intent.getStringExtra("qoh") ?: "0"
+        fDepartment = intent.getStringExtra("department") ?: ""
+        fSubDepartment = intent.getStringExtra("sub_department") ?: ""
+        fCategory = intent.getStringExtra("category") ?: ""
+        fPrice = intent.getStringExtra("price") ?: "0.00"
+        fPromoId = intent.getStringExtra("promo_id") ?: ""
+        fPromoDateFrom = intent.getStringExtra("promo_date_from") ?: ""
+        fPromoDateTo = intent.getStringExtra("promo_date_to") ?: ""
+        fPromoPrice = intent.getStringExtra("promo_price") ?: ""
+        fPromoFlag = intent.getStringExtra("promo_flag") ?: ""
+        fPromoSaving = intent.getStringExtra("promo_saving") ?: ""
+        fEffectivePrice = intent.getStringExtra("effective_price") ?: ""
+        fFifoCost = intent.getStringExtra("fifo_cost") ?: ""
+        fLastCost = intent.getStringExtra("last_cost") ?: ""
+        fAverageCost = intent.getStringExtra("average_cost") ?: ""
+        fListedCost = intent.getStringExtra("listed_cost") ?: ""
+        fMinQty = intent.getStringExtra("min_qty") ?: ""
+        fMaxQty = intent.getStringExtra("max_qty") ?: ""
+        fQtyPo = intent.getStringExtra("qty_po") ?: ""
+        fQtyReq = intent.getStringExtra("qty_req") ?: ""
+        fQtyTbr = intent.getStringExtra("qty_tbr") ?: ""
+        fLastGrQty = intent.getStringExtra("last_gr_qty") ?: ""
+        fLastGrDate = intent.getStringExtra("last_gr_date") ?: ""
+        fLastGrVendor = intent.getStringExtra("last_gr_vendor") ?: ""
+        fVendorName = intent.getStringExtra("vendor_name") ?: ""
     }
 
     private fun setupToolbar() {
@@ -120,118 +142,58 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun displayProductInfo() {
-        binding.tvItemCode.text = currentItemCode
-        binding.tvBarcode.text = currentBarcode
-        binding.tvDescription.text = currentDescription
-        binding.tvQoh.text = currentQoh
-        binding.tvPrice.text = currentPrice
+        // Basic Info
+        binding.tvOutlet.text = fOutlet
+        binding.tvItemCode.text = fItemCode
+        binding.tvItemLink.text = fItemLink
+        binding.tvBarcode.text = fBarcode
+        binding.tvArticleNo.text = fArticleNo
+        binding.tvDescription.text = fDescription
+        binding.tvPackSize.text = fPackSize
+        binding.tvBulkQty.text = fBulkQty
+        binding.tvQoh.text = fQoh
 
-        if (currentOnOrder) {
-            binding.tvOnOrder.text = getString(R.string.yes)
-            binding.tvOnOrder.setTextColor(ContextCompat.getColor(this, R.color.success_green))
-        } else {
-            binding.tvOnOrder.text = getString(R.string.no)
-            binding.tvOnOrder.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+        // Item Status with color
+        binding.tvItemStatus.text = fItemStatus
+        when (fItemStatus.lowercase()) {
+            "active" -> binding.tvItemStatus.setTextColor(0xFF2E7D32.toInt())
+            "disabled", "delisted" -> binding.tvItemStatus.setTextColor(0xFFC62828.toInt())
+            else -> binding.tvItemStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
         }
 
-        // Item Status badge
-        if (currentItemStatus.isNotBlank()) {
-            binding.tvItemStatus.text = currentItemStatus
-            binding.tvItemStatus.visibility = View.VISIBLE
-            when (currentItemStatus.lowercase()) {
-                "active" -> {
-                    binding.tvItemStatus.setTextColor(0xFF2E7D32.toInt())
-                    binding.tvItemStatus.setBackgroundColor(0xFFE8F5E9.toInt())
-                }
-                "disabled", "delisted" -> {
-                    binding.tvItemStatus.setTextColor(0xFFC62828.toInt())
-                    binding.tvItemStatus.setBackgroundColor(0xFFFFEBEE.toInt())
-                }
-                else -> {
-                    binding.tvItemStatus.setTextColor(0xFF757575.toInt())
-                    binding.tvItemStatus.setBackgroundColor(0xFFF5F5F5.toInt())
-                }
-            }
-        } else {
-            binding.tvItemStatus.visibility = View.GONE
-        }
+        // Classification
+        binding.tvDepartment.text = fDepartment
+        binding.tvSubDepartment.text = fSubDepartment
+        binding.tvCategory.text = fCategory
 
-        // Effective Price
-        if (currentEffectivePrice.isNotBlank() && currentEffectivePrice != "0" && currentEffectivePrice != currentPrice) {
-            binding.rowEffectivePrice.visibility = View.VISIBLE
-            binding.tvEffectivePrice.text = currentEffectivePrice
-        }
+        // Pricing
+        binding.tvPrice.text = fPrice
+        binding.tvPromoId.text = fPromoId
+        binding.tvPromoDateFrom.text = fPromoDateFrom
+        binding.tvPromoDateTo.text = fPromoDateTo
+        binding.tvPromoPrice.text = fPromoPrice
+        binding.tvPromoFlag.text = fPromoFlag
+        binding.tvPromoSaving.text = fPromoSaving
+        binding.tvEffectivePrice.text = fEffectivePrice
 
-        // Promo card
-        val isPromo = currentPromoFlag.trim().uppercase() == "Y" || currentPromoPrice.isNotBlank()
-        if (isPromo) {
-            binding.cardPromo.visibility = View.VISIBLE
+        // Cost Info
+        binding.tvFifoCost.text = fFifoCost
+        binding.tvLastCost.text = fLastCost
+        binding.tvAvgCost.text = fAverageCost
+        binding.tvListedCost.text = fListedCost
 
-            if (currentPromoPrice.isNotBlank()) {
-                binding.rowPromoPrice.visibility = View.VISIBLE
-                binding.tvPromoPrice.text = "RM $currentPromoPrice"
-            }
-            if (currentPromoDateFrom.isNotBlank() || currentPromoDateTo.isNotBlank()) {
-                binding.rowPromoPeriod.visibility = View.VISIBLE
-                binding.tvPromoPeriod.text = "$currentPromoDateFrom - $currentPromoDateTo"
-            }
-            if (currentPromoSaving.isNotBlank() && currentPromoSaving != "0" && currentPromoSaving != "0.0") {
-                binding.rowPromoSaving.visibility = View.VISIBLE
-                binding.tvPromoSaving.text = "RM $currentPromoSaving"
-            }
-        }
+        // Inventory
+        binding.tvMinQty.text = fMinQty
+        binding.tvMaxQty.text = fMaxQty
+        binding.tvQtyPo.text = fQtyPo
+        binding.tvQtyReq.text = fQtyReq
+        binding.tvQtyTbr.text = fQtyTbr
 
-        // Classification card
-        val hasClassification = currentDepartment.isNotBlank() || currentSubDepartment.isNotBlank() ||
-                currentCategory.isNotBlank() || currentPackSize.isNotBlank()
-        if (hasClassification) {
-            binding.cardClassification.visibility = View.VISIBLE
-
-            if (currentDepartment.isNotBlank()) {
-                binding.rowDepartment.visibility = View.VISIBLE
-                binding.tvDepartment.text = currentDepartment
-            }
-            if (currentSubDepartment.isNotBlank()) {
-                binding.rowSubDepartment.visibility = View.VISIBLE
-                binding.tvSubDepartment.text = currentSubDepartment
-            }
-            if (currentCategory.isNotBlank()) {
-                binding.rowCategory.visibility = View.VISIBLE
-                binding.tvCategory.text = currentCategory
-            }
-            if (currentPackSize.isNotBlank() && currentPackSize != "0" && currentPackSize != "1.0") {
-                binding.rowPackSize.visibility = View.VISIBLE
-                binding.tvPackSize.text = currentPackSize
-            }
-        }
-
-        // Supply card
-        val hasSupply = currentVendorName.isNotBlank() || currentLastGrDate.isNotBlank() ||
-                currentLastCost.isNotBlank() || currentAverageCost.isNotBlank()
-        if (hasSupply) {
-            binding.cardSupply.visibility = View.VISIBLE
-
-            if (currentVendorName.isNotBlank()) {
-                binding.rowVendor.visibility = View.VISIBLE
-                binding.tvVendor.text = currentVendorName
-            }
-            if (currentLastGrDate.isNotBlank() && !currentLastGrDate.startsWith("1000")) {
-                binding.rowLastGrDate.visibility = View.VISIBLE
-                binding.tvLastGrDate.text = currentLastGrDate
-            }
-            if (currentLastGrQty.isNotBlank() && currentLastGrQty != "0" && currentLastGrQty != "0.0") {
-                binding.rowLastGrQty.visibility = View.VISIBLE
-                binding.tvLastGrQty.text = currentLastGrQty
-            }
-            if (currentLastCost.isNotBlank() && currentLastCost != "0") {
-                binding.rowLastCost.visibility = View.VISIBLE
-                binding.tvLastCost.text = currentLastCost
-            }
-            if (currentAverageCost.isNotBlank() && currentAverageCost != "0") {
-                binding.rowAvgCost.visibility = View.VISIBLE
-                binding.tvAvgCost.text = currentAverageCost
-            }
-        }
+        // Supply Info
+        binding.tvLastGrQty.text = fLastGrQty
+        binding.tvLastGrDate.text = fLastGrDate
+        binding.tvLastGrVendor.text = fLastGrVendor
+        binding.tvVendorName.text = fVendorName
     }
 
     private fun setupButtons() {
@@ -301,7 +263,6 @@ class ProductDetailActivity : AppCompatActivity() {
             return
         }
 
-        // Check permissions (Android 12+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val neededPermissions = mutableListOf<String>()
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
@@ -322,13 +283,11 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun showBluetoothPrinterDialog() {
-        // If already connected, print directly
         if (printerManager.isConnected()) {
             printViaBluetoothDirectly()
             return
         }
 
-        // If we have a saved printer, try to connect to it first
         val savedAddress = prefsManager.savedPrinterAddress
         val savedName = prefsManager.savedPrinterName
         if (savedAddress.isNotEmpty()) {
@@ -370,7 +329,6 @@ class ProductDetailActivity : AppCompatActivity() {
             .setTitle("Select Bluetooth Printer")
             .setItems(deviceNames) { _, which ->
                 val selectedDevice = pairedDevices[which]
-                // Save selected printer
                 prefsManager.savedPrinterAddress = selectedDevice.address
                 prefsManager.savedPrinterName = selectedDevice.name ?: "Unknown"
                 connectAndPrint(selectedDevice.address)
@@ -405,26 +363,13 @@ class ProductDetailActivity : AppCompatActivity() {
                 progressDialog.dismiss()
 
                 if (printed) {
-                    Toast.makeText(
-                        this@ProductDetailActivity,
-                        "Label printed successfully",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this@ProductDetailActivity, "Label printed successfully", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(
-                        this@ProductDetailActivity,
-                        "Failed to print label",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this@ProductDetailActivity, "Failed to print label", Toast.LENGTH_LONG).show()
                 }
             } else {
                 progressDialog.dismiss()
-                Toast.makeText(
-                    this@ProductDetailActivity,
-                    "Failed to connect to printer",
-                    Toast.LENGTH_LONG
-                ).show()
-                // Clear saved printer since it failed
+                Toast.makeText(this@ProductDetailActivity, "Failed to connect to printer", Toast.LENGTH_LONG).show()
                 showDeviceSelectionDialog()
             }
         }
@@ -451,17 +396,9 @@ class ProductDetailActivity : AppCompatActivity() {
             progressDialog.dismiss()
 
             if (printed) {
-                Toast.makeText(
-                    this@ProductDetailActivity,
-                    "Label printed successfully",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(this@ProductDetailActivity, "Label printed successfully", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(
-                    this@ProductDetailActivity,
-                    "Failed to print label. Try reconnecting.",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this@ProductDetailActivity, "Failed to print label. Try reconnecting.", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -470,20 +407,20 @@ class ProductDetailActivity : AppCompatActivity() {
 
     private fun buildCurrentProduct(): Product {
         return Product(
-            outlet = "",
-            itemCode = currentItemCode,
-            barcode = currentBarcode,
-            articleNo = currentArticleNo,
-            description = currentDescription,
-            qoh = currentQoh,
-            price = currentPrice,
-            po = if (currentOnOrder) "1" else "0",
-            effectivePrice = currentEffectivePrice,
-            promoPrice = currentPromoPrice,
-            promoDateFrom = currentPromoDateFrom,
-            promoDateTo = currentPromoDateTo,
-            promoSaving = currentPromoSaving,
-            promoFlag = currentPromoFlag
+            outlet = fOutlet,
+            itemCode = fItemCode,
+            barcode = fBarcode,
+            articleNo = fArticleNo,
+            description = fDescription,
+            qoh = fQoh,
+            price = fPrice,
+            po = fQtyPo,
+            effectivePrice = fEffectivePrice,
+            promoPrice = fPromoPrice,
+            promoDateFrom = fPromoDateFrom,
+            promoDateTo = fPromoDateTo,
+            promoSaving = fPromoSaving,
+            promoFlag = fPromoFlag
         )
     }
 
@@ -514,7 +451,7 @@ class ProductDetailActivity : AppCompatActivity() {
                     .setTitle("Scan Failed")
                     .setMessage("Product not found for barcode: $barcode")
                     .setPositiveButton("OK") { _, _ ->
-                        finish() // Go back to main screen
+                        finish()
                     }
                     .setCancelable(false)
                     .show()
@@ -523,33 +460,43 @@ class ProductDetailActivity : AppCompatActivity() {
     }
 
     private fun loadFromProduct(product: Product) {
-        currentItemCode = product.itemCode
-        currentBarcode = product.barcode
-        currentArticleNo = product.articleNo
-        currentDescription = product.description
-        currentQoh = product.qoh
-        currentPrice = product.formattedPrice
-        currentOnOrder = product.isOnOrder
-        currentItemStatus = product.itemStatus
-        currentPackSize = product.packSize
-        currentDepartment = product.department
-        currentSubDepartment = product.subDepartment
-        currentCategory = product.category
-        currentEffectivePrice = product.formattedEffectivePrice
-        currentPromoPrice = product.formattedPromoPrice
-        currentPromoDateFrom = product.promoDateFrom
-        currentPromoDateTo = product.promoDateTo
-        currentPromoSaving = product.promoSaving
-        currentPromoFlag = product.promoFlag
-        currentVendorName = product.vendorName
-        currentLastGrDate = product.lastGrDate
-        currentLastGrQty = product.lastGrQty
-        currentLastCost = product.lastCost
-        currentAverageCost = product.averageCost
+        fOutlet = product.outlet
+        fItemCode = product.itemCode
+        fItemLink = product.itemLink
+        fBarcode = product.barcode
+        fArticleNo = product.articleNo
+        fDescription = product.description
+        fItemStatus = product.itemStatus
+        fPackSize = product.packSize
+        fBulkQty = product.bulkQty
+        fQoh = product.qoh
+        fDepartment = product.department
+        fSubDepartment = product.subDepartment
+        fCategory = product.category
+        fPrice = product.formattedPrice
+        fPromoId = product.promoId
+        fPromoDateFrom = product.promoDateFrom
+        fPromoDateTo = product.promoDateTo
+        fPromoPrice = product.promoPrice
+        fPromoFlag = product.promoFlag
+        fPromoSaving = product.promoSaving
+        fEffectivePrice = product.effectivePrice
+        fFifoCost = product.fifoCost
+        fLastCost = product.lastCost
+        fAverageCost = product.averageCost
+        fListedCost = product.listedCost
+        fMinQty = product.minQty
+        fMaxQty = product.maxQty
+        fQtyPo = product.po
+        fQtyReq = product.qtyReq
+        fQtyTbr = product.qtyTbr
+        fLastGrQty = product.lastGrQty
+        fLastGrDate = product.lastGrDate
+        fLastGrVendor = product.lastGrVendor
+        fVendorName = product.vendorName
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Don't disconnect on destroy - keep the connection alive for next print
     }
 }
