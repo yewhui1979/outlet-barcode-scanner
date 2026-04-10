@@ -100,6 +100,42 @@ class DataSyncManager(private val context: Context) {
     }
 
     /**
+     * Download hourly stock file (PS__) from server and update existing records.
+     * Only updates stock/transaction fields without wiping the full record.
+     */
+    suspend fun syncStockData(
+        outlet: String,
+        onProgress: ((processed: Int, total: Int) -> Unit)? = null
+    ): Int = withContext(Dispatchers.IO) {
+        val serverUrl = prefsManager.serverUrl.trimEnd('/')
+        if (serverUrl.isBlank()) {
+            throw IllegalStateException("Server URL not configured.")
+        }
+
+        val url = "$serverUrl/data/PS__${outlet}.txt"
+
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        val response = client.newCall(request).execute()
+
+        if (!response.isSuccessful) {
+            throw Exception("Server returned ${response.code}: ${response.message}")
+        }
+
+        val body = response.body
+            ?: throw Exception("Empty response from server")
+
+        val count = repository.parseAndUpdateStock(body.byteStream(), outlet, onProgress)
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        prefsManager.lastStockSyncTimestamp = sdf.format(Date())
+
+        count
+    }
+
+    /**
      * Parse a local product data file and import it.
      */
     suspend fun importFromStream(

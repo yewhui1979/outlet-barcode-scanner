@@ -58,10 +58,21 @@ class ProductDetailActivity : AppCompatActivity() {
     private var fPromoFlag = ""
     private var fPromoSaving = ""
     private var fEffectivePrice = ""
+    private var fRetailExt = ""
     private var fFifoCost = ""
+    private var fFifoTotal = ""
+    private var fFifoGp = ""
     private var fLastCost = ""
+    private var fLastCostTotal = ""
+    private var fLastCostGp = ""
     private var fAverageCost = ""
     private var fListedCost = ""
+    private var fCpo = "0"
+    private var fSo = "0"
+    private var fIbt = "0"
+    private var fDn = "0"
+    private var fCn = "0"
+    private var fPos = "0"
     private var fMinQty = ""
     private var fMaxQty = ""
     private var fQtyPo = ""
@@ -120,10 +131,21 @@ class ProductDetailActivity : AppCompatActivity() {
         fPromoFlag = intent.getStringExtra("promo_flag") ?: ""
         fPromoSaving = intent.getStringExtra("promo_saving") ?: ""
         fEffectivePrice = intent.getStringExtra("effective_price") ?: ""
+        fRetailExt = intent.getStringExtra("retail_ext") ?: ""
         fFifoCost = intent.getStringExtra("fifo_cost") ?: ""
+        fFifoTotal = intent.getStringExtra("fifo_total") ?: ""
+        fFifoGp = intent.getStringExtra("fifo_gp") ?: ""
         fLastCost = intent.getStringExtra("last_cost") ?: ""
+        fLastCostTotal = intent.getStringExtra("last_cost_total") ?: ""
+        fLastCostGp = intent.getStringExtra("last_cost_gp") ?: ""
         fAverageCost = intent.getStringExtra("average_cost") ?: ""
         fListedCost = intent.getStringExtra("listed_cost") ?: ""
+        fCpo = intent.getStringExtra("cpo") ?: "0"
+        fSo = intent.getStringExtra("so") ?: "0"
+        fIbt = intent.getStringExtra("ibt") ?: "0"
+        fDn = intent.getStringExtra("dn") ?: "0"
+        fCn = intent.getStringExtra("cn") ?: "0"
+        fPos = intent.getStringExtra("pos") ?: "0"
         fMinQty = intent.getStringExtra("min_qty") ?: ""
         fMaxQty = intent.getStringExtra("max_qty") ?: ""
         fQtyPo = intent.getStringExtra("qty_po") ?: ""
@@ -177,8 +199,13 @@ class ProductDetailActivity : AppCompatActivity() {
         binding.tvEffectivePrice.text = fEffectivePrice
 
         // Cost Info
+        binding.tvRetailExt.text = fRetailExt
         binding.tvFifoCost.text = fFifoCost
+        binding.tvFifoTotal.text = fFifoTotal
+        binding.tvFifoGp.text = fFifoGp
         binding.tvLastCost.text = fLastCost
+        binding.tvLastCostTotal.text = fLastCostTotal
+        binding.tvLastCostGp.text = fLastCostGp
         binding.tvAvgCost.text = fAverageCost
         binding.tvListedCost.text = fListedCost
 
@@ -188,6 +215,14 @@ class ProductDetailActivity : AppCompatActivity() {
         binding.tvQtyPo.text = fQtyPo
         binding.tvQtyReq.text = fQtyReq
         binding.tvQtyTbr.text = fQtyTbr
+
+        // Transactions
+        binding.tvCpo.text = fCpo
+        binding.tvSo.text = fSo
+        binding.tvIbt.text = fIbt
+        binding.tvDn.text = fDn
+        binding.tvCn.text = fCn
+        binding.tvPos.text = fPos
 
         // Supply Info
         binding.tvLastGrQty.text = fLastGrQty
@@ -481,10 +516,21 @@ class ProductDetailActivity : AppCompatActivity() {
         fPromoFlag = product.promoFlag
         fPromoSaving = product.promoSaving
         fEffectivePrice = product.effectivePrice
+        fRetailExt = product.retailExt
         fFifoCost = product.fifoCost
+        fFifoTotal = product.fifoTotal
+        fFifoGp = product.fifoGp
         fLastCost = product.lastCost
+        fLastCostTotal = product.lastCostTotal
+        fLastCostGp = product.lastCostGp
         fAverageCost = product.averageCost
         fListedCost = product.listedCost
+        fCpo = product.cpo
+        fSo = product.so
+        fIbt = product.ibt
+        fDn = product.dn
+        fCn = product.cn
+        fPos = product.pos
         fMinQty = product.minQty
         fMaxQty = product.maxQty
         fQtyPo = product.po

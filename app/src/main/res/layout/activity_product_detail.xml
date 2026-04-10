@@ -259,25 +259,55 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
 
-                    <!-- 22. FIFO Cost -->
+                    <!-- Retail Ext -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Retail Ext" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvRetailExt" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- FIFO Cost -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="FIFO Cost" android:textColor="@color/text_secondary" android:textSize="14sp" />
                         <TextView android:id="@+id/tvFifoCost" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- 23. Last Cost -->
+                    <!-- FIFO Total -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="FIFO Total" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvFifoTotal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- FIFO GP% -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="FIFO GP%" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvFifoGp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Last Cost -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Last Cost" android:textColor="@color/text_secondary" android:textSize="14sp" />
                         <TextView android:id="@+id/tvLastCost" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- 24. Average Cost -->
+                    <!-- LastCost Total -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="LastCost Total" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvLastCostTotal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- LastCost GP% -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="LastCost GP%" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvLastCostGp" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Average Cost -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Average Cost" android:textColor="@color/text_secondary" android:textSize="14sp" />
                         <TextView android:id="@+id/tvAvgCost" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
                     </LinearLayout>
 
-                    <!-- 25. Listed Cost -->
+                    <!-- Listed Cost -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Listed Cost" android:textColor="@color/text_secondary" android:textSize="14sp" />
                         <TextView android:id="@+id/tvListedCost" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
@@ -337,6 +367,68 @@
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Qty TBR" android:textColor="@color/text_secondary" android:textSize="14sp" />
                         <TextView android:id="@+id/tvQtyTbr" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Transactions Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/padding_small"
+                app:cardCornerRadius="@dimen/corner_radius"
+                app:cardElevation="@dimen/card_elevation">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/padding_large">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="TRANSACTIONS"
+                        android:textColor="@color/primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- CPO -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="CPO" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvCpo" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- SO -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="SO" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvSo" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- IBT -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="IBT" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvIbt" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- DN -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="DN" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvDn" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- CN -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="CN" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvCn" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- POS -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="POS" android:textColor="@color/text_secondary" android:textSize="14sp" />
+                        <TextView android:id="@+id/tvPos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:gravity="end" android:textColor="@color/text_primary" android:textSize="14sp" android:textStyle="bold" />
                     </LinearLayout>
 
                 </LinearLayout>

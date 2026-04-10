@@ -246,8 +246,30 @@ class LoginActivity : AppCompatActivity() {
                 barcodeSynced = true
             }
 
+            // Step 3: Sync hourly stock data (PS__ file) - always update
+            binding.tvSyncStatus.text = "Updating stock data..."
+            binding.tvSyncDetail.text = "Downloading hourly stock file..."
+            binding.progressSync.isIndeterminate = true
+
+            try {
+                val stockCount = withContext(Dispatchers.IO) {
+                    syncManager.syncStockData(outlet) { processed, _ ->
+                        launch(Dispatchers.Main) {
+                            binding.tvSyncDetail.text = "Stock update: $processed items"
+                            binding.progressSync.isIndeterminate = false
+                            val pct = (processed * 100 / 13000).coerceAtMost(95)
+                            binding.progressSync.progress = pct
+                        }
+                    }
+                }
+                binding.tvSyncDetail.text = "Stock update: $stockCount items updated"
+            } catch (e: Exception) {
+                binding.tvSyncDetail.text = "Stock update skipped"
+            }
+
             // Done - show summary briefly then navigate
             binding.tvSyncStatus.text = "Sync complete!"
+            binding.progressSync.isIndeterminate = false
             binding.progressSync.progress = 100
 
             val finalProductCount = withContext(Dispatchers.IO) { repository.getItemCount(outlet) }
