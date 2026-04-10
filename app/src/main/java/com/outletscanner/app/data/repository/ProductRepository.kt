@@ -20,6 +20,10 @@ class ProductRepository(context: Context) {
      * Two-step lookup: barcode → itemcode (via barcode_mappings) → product (via products).
      * Falls back to direct barcode/itemcode match in products table.
      */
+    /**
+     * Two-step lookup: barcode → itemcode (via barcode_mappings) → product (via products).
+     * Also checks articleno. Falls back to direct barcode/itemcode/articleno match.
+     */
     suspend fun findByBarcode(outlet: String, barcode: String): Product? {
         // Step 1: Try barcode mapping table first
         val itemCode = barcodeDao.findItemCodeByBarcode(barcode)
@@ -28,8 +32,9 @@ class ProductRepository(context: Context) {
             if (product != null) return product
         }
 
-        // Step 2: Fall back to direct lookup in products table
+        // Step 2: Fall back to direct lookup in products table (barcode, then articleno)
         return dao.findByBarcode(outlet, barcode)
+            ?: dao.findByArticleNo(outlet, barcode)
     }
 
     suspend fun findByItemCode(outlet: String, itemCode: String): Product? {
@@ -44,7 +49,7 @@ class ProductRepository(context: Context) {
             if (product != null) return product
         }
 
-        // Fall back to direct search
+        // Fall back to direct search (includes articleno)
         return dao.search(outlet, query)
     }
 

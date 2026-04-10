@@ -70,7 +70,6 @@ class LoginActivity : AppCompatActivity() {
             binding.btnLogin.isEnabled = false
             binding.btnLogin.text = "Logging in..."
 
-            // Try server authentication first, fall back to local
             lifecycleScope.launch {
                 val user = serverUserManager.authenticate(username, password)
                     ?: userManager.authenticate(username, password)
@@ -82,14 +81,12 @@ class LoginActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                // Authentication successful
                 userManager.setCurrentUser(user.username)
                 prefsManager.currentUsername = user.username
                 prefsManager.currentRole = user.role
 
                 hideError()
 
-                // Show outlet selection phase
                 binding.tilUsername.isEnabled = false
                 binding.tilPassword.isEnabled = false
                 binding.btnLogin.visibility = View.GONE
@@ -100,13 +97,11 @@ class LoginActivity : AppCompatActivity() {
 
                 when (user.role) {
                     ServerUserManager.ROLE_USER -> {
-                        // User role: lock to assigned store
                         binding.actvOutlet.setText(user.assignedStore, false)
                         binding.actvOutlet.isEnabled = false
                         binding.tilOutlet.isEnabled = false
                     }
                     else -> {
-                        // Admin and Superuser: can select any store
                         val savedOutlet = prefsManager.selectedOutlet
                         if (savedOutlet.isNotBlank()) {
                             binding.actvOutlet.setText(savedOutlet, false)
@@ -129,8 +124,8 @@ class LoginActivity : AppCompatActivity() {
             prefsManager.selectedOutlet = selectedOutlet
             prefsManager.isLoggedIn = true
 
-            // Load bundled sample data if available for this outlet
-            loadBundledData(selectedOutlet)
+            // Start auto sync after sign-in
+            autoSyncFromServer(selectedOutlet)
         }
     }
 
@@ -143,86 +138,124 @@ class LoginActivity : AppCompatActivity() {
         binding.tvLoginError.visibility = View.GONE
     }
 
-    private fun loadBundledData(outlet: String) {
+    private fun autoSyncFromServer(outlet: String) {
+        val syncManager = DataSyncManager(this)
         val repository = ProductRepository(this)
 
+        // Disable buttons, show sync progress
+        binding.btnEnter.isEnabled = false
+        binding.tilOutlet.isEnabled = false
+        binding.layoutSyncProgress.visibility = View.VISIBLE
+        binding.progressSync.isIndeterminate = true
+        binding.tvSyncStatus.text = "Syncing data..."
+        binding.tvSyncDetail.text = "Checking existing data..."
+
         lifecycleScope.launch {
-            val count = withContext(Dispatchers.IO) {
+            // Check if data already exists for this outlet
+            val existingCount = withContext(Dispatchers.IO) {
                 repository.getItemCount(outlet)
             }
+            val existingBarcodeCount = withContext(Dispatchers.IO) {
+                repository.getBarcodeMappingCount()
+            }
 
-            // Only load bundled data if database is empty for this outlet
-            if (count == 0) {
+            var productSynced = false
+            var barcodeSynced = false
+
+            // Step 1: Sync product/price data
+            if (existingCount == 0) {
+                // No data - need to sync
+                binding.tvSyncStatus.text = "Syncing price data..."
+                binding.tvSyncDetail.text = "Downloading..."
+
                 try {
+                    // First try bundled data
                     val assetFiles = assets.list("") ?: emptyArray()
                     val matchingFile = assetFiles.firstOrNull {
                         it.startsWith("${outlet}_") && it.endsWith(".txt")
                     }
 
                     if (matchingFile != null) {
-                        Toast.makeText(
-                            this@LoginActivity,
-                            "Loading sample data for $outlet...",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
+                        binding.tvSyncDetail.text = "Loading bundled data..."
                         withContext(Dispatchers.IO) {
                             val inputStream = assets.open(matchingFile)
                             repository.parseAndInsert(inputStream, outlet)
                         }
-
-                        Toast.makeText(
-                            this@LoginActivity,
-                            "Sample data loaded!",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        productSynced = true
                     }
+
+                    // Then try server sync
+                    binding.tvSyncDetail.text = "Downloading from server..."
+                    binding.progressSync.isIndeterminate = false
+                    binding.progressSync.progress = 0
+
+                    val syncCount = withContext(Dispatchers.IO) {
+                        syncManager.syncData(outlet) { processed, _ ->
+                            launch(Dispatchers.Main) {
+                                binding.tvSyncDetail.text = "Price data: $processed items loaded"
+                                // Estimate progress (assume ~50K items typical)
+                                val pct = (processed * 100 / 50000).coerceAtMost(95)
+                                binding.progressSync.progress = pct
+                            }
+                        }
+                    }
+                    binding.progressSync.progress = 100
+                    binding.tvSyncDetail.text = "Price data: $syncCount items loaded"
+                    productSynced = true
                 } catch (e: Exception) {
-                    // Ignore - sample data is optional
+                    if (!productSynced) {
+                        binding.tvSyncDetail.text = "Price sync failed - import manually later"
+                    }
                 }
+            } else {
+                // Data exists - skip sync
+                binding.tvSyncDetail.text = "Price data: $existingCount items (cached)"
+                binding.progressSync.isIndeterminate = false
+                binding.progressSync.progress = 50
+                productSynced = true
             }
 
-            // Auto sync from server after sign-in
-            autoSyncFromServer(outlet)
-        }
-    }
+            // Step 2: Sync barcode mappings
+            if (existingBarcodeCount == 0) {
+                binding.tvSyncStatus.text = "Syncing barcode mappings..."
+                binding.tvSyncDetail.text = "Downloading barcode file..."
+                binding.progressSync.isIndeterminate = false
+                binding.progressSync.progress = 50
 
-    private fun autoSyncFromServer(outlet: String) {
-        val syncManager = DataSyncManager(this)
-
-        Toast.makeText(this, "Syncing data from server...", Toast.LENGTH_SHORT).show()
-
-        lifecycleScope.launch {
-            try {
-                val syncCount = withContext(Dispatchers.IO) {
-                    syncManager.syncData(outlet)
+                try {
+                    val barcodeCount = withContext(Dispatchers.IO) {
+                        syncManager.syncBarcodeMappings { processed, _ ->
+                            launch(Dispatchers.Main) {
+                                binding.tvSyncDetail.text = "Barcode mappings: $processed loaded"
+                                val pct = 50 + (processed * 50 / 540000).coerceAtMost(49)
+                                binding.progressSync.progress = pct
+                            }
+                        }
+                    }
+                    binding.progressSync.progress = 100
+                    binding.tvSyncDetail.text = "Barcode mappings: $barcodeCount loaded"
+                    barcodeSynced = true
+                } catch (e: Exception) {
+                    if (!barcodeSynced) {
+                        binding.tvSyncDetail.text = "Barcode sync failed - import manually later"
+                    }
                 }
-                Toast.makeText(
-                    this@LoginActivity,
-                    "Synced $syncCount items",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: Exception) {
-                Toast.makeText(
-                    this@LoginActivity,
-                    "Auto sync skipped - will try later",
-                    Toast.LENGTH_SHORT
-                ).show()
+            } else {
+                binding.tvSyncDetail.text = "Barcode mappings: $existingBarcodeCount (cached)"
+                binding.progressSync.progress = 100
+                barcodeSynced = true
             }
 
-            // Also sync barcode mappings
-            try {
-                val barcodeCount = withContext(Dispatchers.IO) {
-                    syncManager.syncBarcodeMappings()
-                }
-                Toast.makeText(
-                    this@LoginActivity,
-                    "Synced $barcodeCount barcode mappings",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (e: Exception) {
-                // Barcode sync failed - not critical
-            }
+            // Done - show summary briefly then navigate
+            binding.tvSyncStatus.text = "Sync complete!"
+            binding.progressSync.progress = 100
+
+            val finalProductCount = withContext(Dispatchers.IO) { repository.getItemCount(outlet) }
+            val finalBarcodeCount = withContext(Dispatchers.IO) { repository.getBarcodeMappingCount() }
+            binding.tvSyncDetail.text = "$finalProductCount products, $finalBarcodeCount barcode mappings"
+
+            // Brief pause to show completion
+            kotlinx.coroutines.delay(800)
 
             navigateToMain()
         }

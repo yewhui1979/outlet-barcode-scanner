@@ -15,10 +15,13 @@ interface ProductDao {
     @Query("SELECT * FROM products WHERE outlet = :outlet AND itemcode = :itemCode LIMIT 1")
     suspend fun findByItemCode(outlet: String, itemCode: String): Product?
 
-    @Query("SELECT * FROM products WHERE outlet = :outlet AND (barcode = :query OR itemcode = :query) LIMIT 1")
+    @Query("SELECT * FROM products WHERE outlet = :outlet AND articleno = :articleNo LIMIT 1")
+    suspend fun findByArticleNo(outlet: String, articleNo: String): Product?
+
+    @Query("SELECT * FROM products WHERE outlet = :outlet AND (barcode = :query OR itemcode = :query OR articleno = :query) LIMIT 1")
     suspend fun search(outlet: String, query: String): Product?
 
-    @Query("SELECT * FROM products WHERE outlet = :outlet AND (barcode LIKE :query OR itemcode LIKE :query OR description LIKE :query) LIMIT 50")
+    @Query("SELECT * FROM products WHERE outlet = :outlet AND (barcode LIKE :query OR itemcode LIKE :query OR articleno LIKE :query OR description LIKE :query) LIMIT 50")
     suspend fun searchFuzzy(outlet: String, query: String): List<Product>
 
     @Query("SELECT COUNT(*) FROM products WHERE outlet = :outlet")
