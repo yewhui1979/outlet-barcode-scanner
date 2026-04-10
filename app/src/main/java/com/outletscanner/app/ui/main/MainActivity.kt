@@ -62,6 +62,12 @@ class MainActivity : AppCompatActivity() {
     private fun setupUI() {
         binding.tvOutletName.text = getString(R.string.outlet_label, prefsManager.selectedOutlet)
         updateLastSynced()
+
+        // Show version number
+        try {
+            val versionName = packageManager.getPackageInfo(packageName, 0).versionName
+            binding.tvVersion.text = "v$versionName"
+        } catch (_: Exception) {}
     }
 
     private fun setupListeners() {

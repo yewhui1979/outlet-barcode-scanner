@@ -246,8 +246,8 @@ class LoginActivity : AppCompatActivity() {
                 barcodeSynced = true
             }
 
-            // Step 3: Sync hourly stock data (PS__ file) - always update
-            binding.tvSyncStatus.text = "Updating stock data..."
+            // Step 3: Sync hourly QOH data (PS__ file) - always update
+            binding.tvSyncStatus.text = "Updating QOH..."
             binding.tvSyncDetail.text = "Downloading hourly stock file..."
             binding.progressSync.isIndeterminate = true
 
@@ -255,16 +255,16 @@ class LoginActivity : AppCompatActivity() {
                 val stockCount = withContext(Dispatchers.IO) {
                     syncManager.syncStockData(outlet) { processed, _ ->
                         launch(Dispatchers.Main) {
-                            binding.tvSyncDetail.text = "Stock update: $processed items"
+                            binding.tvSyncDetail.text = "QOH update: $processed items"
                             binding.progressSync.isIndeterminate = false
                             val pct = (processed * 100 / 13000).coerceAtMost(95)
                             binding.progressSync.progress = pct
                         }
                     }
                 }
-                binding.tvSyncDetail.text = "Stock update: $stockCount items updated"
+                binding.tvSyncDetail.text = "QOH update: $stockCount items updated"
             } catch (e: Exception) {
-                binding.tvSyncDetail.text = "Stock update skipped"
+                binding.tvSyncDetail.text = "QOH update skipped"
             }
 
             // Done - show summary briefly then navigate

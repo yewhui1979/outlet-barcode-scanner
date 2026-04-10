@@ -36,21 +36,8 @@ interface ProductDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(products: List<Product>)
 
-    @Query("""
-        UPDATE products SET
-            qoh = :qoh, price = :price, retail_ext = :retailExt,
-            fifo_cost = :fifoCost, fifo_total = :fifoTotal, fifo_gp = :fifoGp,
-            last_cost = :lastCost, last_cost_total = :lastCostTotal, last_cost_gp = :lastCostGp,
-            po = :po, cpo = :cpo, so = :so, ibt = :ibt, dn = :dn, cn = :cn, pos = :pos
-        WHERE outlet = :outlet AND itemcode = :itemCode
-    """)
-    suspend fun updateStockFields(
-        outlet: String, itemCode: String,
-        qoh: String, price: String, retailExt: String,
-        fifoCost: String, fifoTotal: String, fifoGp: String,
-        lastCost: String, lastCostTotal: String, lastCostGp: String,
-        po: String, cpo: String, so: String, ibt: String, dn: String, cn: String, pos: String
-    )
+    @Query("UPDATE products SET qoh = :qoh WHERE outlet = :outlet AND itemcode = :itemCode")
+    suspend fun updateQoh(outlet: String, itemCode: String, qoh: String)
 
     @Query("SELECT COUNT(*) FROM products")
     suspend fun getTotalCount(): Int

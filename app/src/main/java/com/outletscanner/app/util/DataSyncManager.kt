@@ -100,8 +100,8 @@ class DataSyncManager(private val context: Context) {
     }
 
     /**
-     * Download hourly stock file (PS__) from server and update existing records.
-     * Only updates stock/transaction fields without wiping the full record.
+     * Download hourly stock file (PS__) from server and update QOH.
+     * File pattern: {serverUrl}/data/{outlet}_stock.txt
      */
     suspend fun syncStockData(
         outlet: String,
@@ -112,7 +112,8 @@ class DataSyncManager(private val context: Context) {
             throw IllegalStateException("Server URL not configured.")
         }
 
-        val url = "$serverUrl/data/PS__${outlet}.txt"
+        // Hourly stock file: {outlet}_stock.txt
+        val url = "$serverUrl/data/${outlet}_stock.txt"
 
         val request = Request.Builder()
             .url(url)
@@ -127,7 +128,7 @@ class DataSyncManager(private val context: Context) {
         val body = response.body
             ?: throw Exception("Empty response from server")
 
-        val count = repository.parseAndUpdateStock(body.byteStream(), outlet, onProgress)
+        val count = repository.parseAndUpdateQoh(body.byteStream(), outlet, onProgress)
 
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         prefsManager.lastStockSyncTimestamp = sdf.format(Date())

@@ -258,10 +258,10 @@ class ProductRepository(context: Context) {
     }
 
     /**
-     * Parse hourly stock file (PS__) and UPDATE existing product records.
-     * Only updates stock/transaction fields without wiping the full record.
+     * Parse hourly stock file (PS__) and UPDATE QOH for existing product records.
+     * Only updates QOH without wiping the full record.
      */
-    suspend fun parseAndUpdateStock(
+    suspend fun parseAndUpdateQoh(
         inputStream: InputStream,
         outlet: String,
         onProgress: ((processed: Int, total: Int) -> Unit)? = null
@@ -289,27 +289,9 @@ class ProductRepository(context: Context) {
 
             try {
                 val itemCode = getField(fields, headerMap, "itemcode", "")
+                val qoh = getField(fields, headerMap, "qoh", "0")
                 if (itemCode.isNotBlank()) {
-                    dao.updateStockFields(
-                        outlet = outlet,
-                        itemCode = itemCode,
-                        qoh = getField(fields, headerMap, "qoh", "0"),
-                        price = getField(fields, headerMap, "price", "0.00"),
-                        retailExt = getField(fields, headerMap, "retail_ext", ""),
-                        fifoCost = getField(fields, headerMap, "fifo_cost", ""),
-                        fifoTotal = getField(fields, headerMap, "fifo_total", ""),
-                        fifoGp = getField(fields, headerMap, "fifo_gp%", ""),
-                        lastCost = getField(fields, headerMap, "last_cost", ""),
-                        lastCostTotal = getField(fields, headerMap, "lastcost_total", ""),
-                        lastCostGp = getField(fields, headerMap, "lastcost_gp%", ""),
-                        po = getFieldMulti(fields, headerMap, listOf("qty_po", "po"), "0"),
-                        cpo = getField(fields, headerMap, "cpo", "0"),
-                        so = getField(fields, headerMap, "so", "0"),
-                        ibt = getField(fields, headerMap, "ibt", "0"),
-                        dn = getField(fields, headerMap, "dn", "0"),
-                        cn = getField(fields, headerMap, "cn", "0"),
-                        pos = getField(fields, headerMap, "pos", "0")
-                    )
+                    dao.updateQoh(outlet, itemCode, qoh)
                     totalUpdated++
                 }
             } catch (e: Exception) {
