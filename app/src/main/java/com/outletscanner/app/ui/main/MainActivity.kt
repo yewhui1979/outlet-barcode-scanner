@@ -1,12 +1,8 @@
 package com.outletscanner.app.ui.main
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.view.View
 import android.view.inputmethod.EditorInfo
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -18,7 +14,6 @@ import com.outletscanner.app.databinding.ActivityMainBinding
 import com.outletscanner.app.ui.product.ProductDetailActivity
 import com.outletscanner.app.ui.scanner.ScannerActivity
 import com.outletscanner.app.ui.settings.SettingsActivity
-import com.outletscanner.app.util.DataSyncManager
 import com.outletscanner.app.util.PrefsManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,19 +24,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefsManager: PrefsManager
     private lateinit var repository: ProductRepository
-    private lateinit var syncManager: DataSyncManager
-
-    private val filePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let { importFileFromUri(it) }
-    }
-
-    private val barcodeFilePickerLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri: Uri? ->
-        uri?.let { importBarcodeFileFromUri(it) }
-    }
 
     companion object {
         private const val REQUEST_SCAN = 1001
@@ -54,7 +36,6 @@ class MainActivity : AppCompatActivity() {
 
         prefsManager = PrefsManager(this)
         repository = ProductRepository(this)
-        syncManager = DataSyncManager(this)
 
         setupToolbar()
         setupUI()
@@ -100,108 +81,6 @@ class MainActivity : AppCompatActivity() {
                 false
             }
         }
-
-        // Import price file button
-        binding.btnImportFile.setOnClickListener {
-            filePickerLauncher.launch(arrayOf("text/plain", "*/*"))
-        }
-
-        // Import barcode mapping file button
-        binding.btnImportBarcode.setOnClickListener {
-            barcodeFilePickerLauncher.launch(arrayOf("text/plain", "*/*"))
-        }
-
-        // Sync button
-        binding.btnSync.setOnClickListener {
-            performSync()
-        }
-    }
-
-    private fun importFileFromUri(uri: Uri) {
-        val outlet = prefsManager.selectedOutlet
-        if (outlet.isBlank()) return
-
-        binding.btnImportFile.isEnabled = false
-        binding.progressSync.visibility = View.VISIBLE
-        binding.progressSync.isIndeterminate = true
-        binding.tvLastSynced.text = "Importing file..."
-
-        lifecycleScope.launch {
-            try {
-                val count = withContext(Dispatchers.IO) {
-                    val inputStream = contentResolver.openInputStream(uri)
-                        ?: throw Exception("Cannot read file")
-                    repository.parseAndInsert(inputStream, outlet) { processed, _ ->
-                        launch(Dispatchers.Main) {
-                            binding.tvItemCount.text = getString(R.string.item_count, processed)
-                        }
-                    }
-                }
-
-                prefsManager.lastSyncTimestamp = java.text.SimpleDateFormat(
-                    "yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()
-                ).format(java.util.Date())
-
-                Snackbar.make(
-                    binding.root,
-                    "Imported $count products successfully!",
-                    Snackbar.LENGTH_SHORT
-                ).show()
-
-                refreshUI()
-            } catch (e: Exception) {
-                Snackbar.make(
-                    binding.root,
-                    "Import failed: ${e.message ?: "Unknown error"}",
-                    Snackbar.LENGTH_LONG
-                ).show()
-            } finally {
-                binding.btnImportFile.isEnabled = true
-                binding.progressSync.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun importBarcodeFileFromUri(uri: Uri) {
-        binding.btnImportBarcode.isEnabled = false
-        binding.progressSync.visibility = View.VISIBLE
-        binding.progressSync.isIndeterminate = true
-        binding.tvLastSynced.text = "Importing barcode mappings..."
-
-        lifecycleScope.launch {
-            try {
-                val count = withContext(Dispatchers.IO) {
-                    val inputStream = contentResolver.openInputStream(uri)
-                        ?: throw Exception("Cannot read file")
-                    repository.parseAndInsertBarcodeMappings(inputStream) { processed, _ ->
-                        launch(Dispatchers.Main) {
-                            binding.tvBarcodeCount.text = "Barcode mappings: $processed"
-                        }
-                    }
-                }
-
-                prefsManager.lastBarcodeSyncTimestamp = java.text.SimpleDateFormat(
-                    "yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()
-                ).format(java.util.Date())
-
-                Snackbar.make(
-                    binding.root,
-                    "Imported $count barcode mappings!",
-                    Snackbar.LENGTH_SHORT
-                ).show()
-
-                refreshUI()
-            } catch (e: Exception) {
-                Snackbar.make(
-                    binding.root,
-                    "Import failed: ${e.message ?: "Unknown error"}",
-                    Snackbar.LENGTH_LONG
-                ).show()
-            } finally {
-                binding.btnImportBarcode.isEnabled = true
-                binding.progressSync.visibility = View.GONE
-            }
-        }
     }
 
     private fun performSearch() {
@@ -218,47 +97,6 @@ class MainActivity : AppCompatActivity() {
                 binding.etSearch.text?.clear()
             } else {
                 Snackbar.make(binding.root, R.string.no_product_found, Snackbar.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun performSync() {
-        val outlet = prefsManager.selectedOutlet
-        if (outlet.isBlank()) return
-
-        binding.btnSync.isEnabled = false
-        binding.progressSync.visibility = View.VISIBLE
-        binding.progressSync.isIndeterminate = true
-
-        lifecycleScope.launch {
-            try {
-                val count = withContext(Dispatchers.IO) {
-                    syncManager.syncData(outlet) { processed, _ ->
-                        launch(Dispatchers.Main) {
-                            binding.progressSync.isIndeterminate = false
-                            binding.tvLastSynced.text = getString(R.string.sync_progress, 0)
-                            // Show count so far
-                            binding.tvItemCount.text = getString(R.string.item_count, processed)
-                        }
-                    }
-                }
-
-                Snackbar.make(
-                    binding.root,
-                    getString(R.string.sync_complete, count),
-                    Snackbar.LENGTH_SHORT
-                ).show()
-
-                refreshUI()
-            } catch (e: Exception) {
-                Snackbar.make(
-                    binding.root,
-                    getString(R.string.sync_failed, e.message ?: "Unknown error"),
-                    Snackbar.LENGTH_LONG
-                ).show()
-            } finally {
-                binding.btnSync.isEnabled = true
-                binding.progressSync.visibility = View.GONE
             }
         }
     }

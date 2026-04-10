@@ -4,7 +4,7 @@
     <string name="select_outlet">Select Outlet</string>
     <string name="enter">Enter</string>
     <string name="scan_barcode">Scan Barcode</string>
-    <string name="search_hint">Search by barcode or item code…</string>
+    <string name="search_hint">Search by barcode, item code, or article no…</string>
     <string name="sync_data">Sync Data</string>
     <string name="last_synced">Last Synced: %1$s</string>
     <string name="never_synced">Last Synced: Never</string>

@@ -125,7 +125,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tilSearch" />
 
-    <!-- Sync Section -->
+    <!-- Info Section -->
     <LinearLayout
         android:id="@+id/layoutSync"
         android:layout_width="0dp"
@@ -137,46 +137,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnScan">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnImportFile"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:text="Import Price"
-                android:textSize="12sp"
-                app:icon="@drawable/ic_import"
-                app:cornerRadius="@dimen/corner_radius" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnImportBarcode"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:text="Import Barcode"
-                android:textSize="12sp"
-                app:icon="@drawable/ic_import"
-                app:cornerRadius="@dimen/corner_radius" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSync"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/sync_data"
-                android:textSize="12sp"
-                app:icon="@drawable/ic_sync"
-                app:cornerRadius="@dimen/corner_radius" />
-
-        </LinearLayout>
 
         <TextView
             android:id="@+id/tvBarcodeCount"
