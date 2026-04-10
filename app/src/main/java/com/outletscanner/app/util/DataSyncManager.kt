@@ -36,10 +36,11 @@ class DataSyncManager(private val context: Context) {
             throw IllegalStateException("Server URL not configured. Go to Settings to set it up.")
         }
 
+        // Daily price file: /data/price/{outlet}.txt
         val url = if (serverUrl.endsWith(".txt", ignoreCase = true)) {
             serverUrl
         } else {
-            "$serverUrl/data/${outlet}.txt"
+            "$serverUrl/data/price/${outlet}.txt"
         }
 
         val request = Request.Builder()
@@ -75,8 +76,8 @@ class DataSyncManager(private val context: Context) {
             throw IllegalStateException("Server URL not configured. Go to Settings to set it up.")
         }
 
-        // Barcode mapping file at: {serverUrl}/data/HHT_Barcode.txt
-        val url = "$serverUrl/data/HHT_Barcode.txt"
+        // Daily barcode file: /data/barcode/HHT_Barcode.txt
+        val url = "$serverUrl/data/barcode/HHT_Barcode.txt"
 
         val request = Request.Builder()
             .url(url)
@@ -112,8 +113,8 @@ class DataSyncManager(private val context: Context) {
             throw IllegalStateException("Server URL not configured.")
         }
 
-        // Hourly stock file: {outlet}_stock.txt
-        val url = "$serverUrl/data/${outlet}_stock.txt"
+        // Hourly stock file: /data/stock/{outlet}.txt
+        val url = "$serverUrl/data/stock/${outlet}.txt"
 
         val request = Request.Builder()
             .url(url)
