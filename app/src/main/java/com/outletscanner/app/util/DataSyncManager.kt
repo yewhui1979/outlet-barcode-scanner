@@ -19,14 +19,13 @@ class DataSyncManager(private val context: Context) {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.MINUTES) // Large files need more time
+        .readTimeout(5, TimeUnit.MINUTES)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     /**
-     * Download data file from the configured server URL and parse it.
-     * File naming: {OUTLET}_{timestamp}.txt
-     * Returns the number of items synced, or throws an exception on failure.
+     * Download product data file from the configured server URL and parse it.
+     * Returns the number of items synced.
      */
     suspend fun syncData(
         outlet: String,
@@ -37,8 +36,6 @@ class DataSyncManager(private val context: Context) {
             throw IllegalStateException("Server URL not configured. Go to Settings to set it up.")
         }
 
-        // Build the URL - download the file for this outlet
-        // Server serves files at: {serverUrl}/data/{OUTLET}.txt
         val url = if (serverUrl.endsWith(".txt", ignoreCase = true)) {
             serverUrl
         } else {
@@ -58,11 +55,8 @@ class DataSyncManager(private val context: Context) {
         val body = response.body
             ?: throw Exception("Empty response from server")
 
-        val inputStream: InputStream = body.byteStream()
+        val count = repository.parseAndInsert(body.byteStream(), outlet, onProgress)
 
-        val count = repository.parseAndInsert(inputStream, outlet, onProgress)
-
-        // Update last sync timestamp
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         prefsManager.lastSyncTimestamp = sdf.format(Date())
 
@@ -70,7 +64,43 @@ class DataSyncManager(private val context: Context) {
     }
 
     /**
-     * Parse a local file (e.g., from file picker or assets) and import it.
+     * Download barcode mapping file from the configured server URL and parse it.
+     * Returns the number of barcode mappings synced.
+     */
+    suspend fun syncBarcodeMappings(
+        onProgress: ((processed: Int, total: Int) -> Unit)? = null
+    ): Int = withContext(Dispatchers.IO) {
+        val serverUrl = prefsManager.serverUrl.trimEnd('/')
+        if (serverUrl.isBlank()) {
+            throw IllegalStateException("Server URL not configured. Go to Settings to set it up.")
+        }
+
+        // Barcode mapping file at: {serverUrl}/data/HHT_Barcode.txt
+        val url = "$serverUrl/data/HHT_Barcode.txt"
+
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        val response = client.newCall(request).execute()
+
+        if (!response.isSuccessful) {
+            throw Exception("Server returned ${response.code}: ${response.message}")
+        }
+
+        val body = response.body
+            ?: throw Exception("Empty response from server")
+
+        val count = repository.parseAndInsertBarcodeMappings(body.byteStream(), onProgress)
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        prefsManager.lastBarcodeSyncTimestamp = sdf.format(Date())
+
+        count
+    }
+
+    /**
+     * Parse a local product data file and import it.
      */
     suspend fun importFromStream(
         inputStream: InputStream,
@@ -81,6 +111,21 @@ class DataSyncManager(private val context: Context) {
 
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         prefsManager.lastSyncTimestamp = sdf.format(Date())
+
+        return count
+    }
+
+    /**
+     * Parse a local barcode mapping file and import it.
+     */
+    suspend fun importBarcodeMappingsFromStream(
+        inputStream: InputStream,
+        onProgress: ((processed: Int, total: Int) -> Unit)? = null
+    ): Int {
+        val count = repository.parseAndInsertBarcodeMappings(inputStream, onProgress)
+
+        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        prefsManager.lastBarcodeSyncTimestamp = sdf.format(Date())
 
         return count
     }

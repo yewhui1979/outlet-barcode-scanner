@@ -150,7 +150,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
-                android:text="Import File"
+                android:text="Import Price"
+                android:textSize="12sp"
+                app:icon="@drawable/ic_import"
+                app:cornerRadius="@dimen/corner_radius" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnImportBarcode"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:text="Import Barcode"
+                android:textSize="12sp"
                 app:icon="@drawable/ic_import"
                 app:cornerRadius="@dimen/corner_radius" />
 
@@ -160,10 +172,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/sync_data"
+                android:textSize="12sp"
                 app:icon="@drawable/ic_sync"
                 app:cornerRadius="@dimen/corner_radius" />
 
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvBarcodeCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
 
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/progressSync"

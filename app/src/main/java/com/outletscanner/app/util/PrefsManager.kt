@@ -18,6 +18,7 @@ class PrefsManager(context: Context) {
         private const val KEY_CURRENT_ROLE = "current_role"
         private const val KEY_PRINTER_ADDRESS = "saved_printer_address"
         private const val KEY_PRINTER_NAME = "saved_printer_name"
+        private const val KEY_LAST_BARCODE_SYNC = "last_barcode_sync"
 
         const val DEFAULT_SERVER_URL = "http://43.216.228.22"
 
@@ -57,6 +58,10 @@ class PrefsManager(context: Context) {
     var currentRole: String
         get() = prefs.getString(KEY_CURRENT_ROLE, "") ?: ""
         set(value) = prefs.edit().putString(KEY_CURRENT_ROLE, value).apply()
+
+    var lastBarcodeSyncTimestamp: String
+        get() = prefs.getString(KEY_LAST_BARCODE_SYNC, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_BARCODE_SYNC, value).apply()
 
     var savedPrinterAddress: String
         get() = prefs.getString(KEY_PRINTER_ADDRESS, "") ?: ""

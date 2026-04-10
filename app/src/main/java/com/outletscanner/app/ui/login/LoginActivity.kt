@@ -203,12 +203,25 @@ class LoginActivity : AppCompatActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             } catch (e: Exception) {
-                // Sync failed - not critical, user can sync manually later
                 Toast.makeText(
                     this@LoginActivity,
                     "Auto sync skipped - will try later",
                     Toast.LENGTH_SHORT
                 ).show()
+            }
+
+            // Also sync barcode mappings
+            try {
+                val barcodeCount = withContext(Dispatchers.IO) {
+                    syncManager.syncBarcodeMappings()
+                }
+                Toast.makeText(
+                    this@LoginActivity,
+                    "Synced $barcodeCount barcode mappings",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (e: Exception) {
+                // Barcode sync failed - not critical
             }
 
             navigateToMain()

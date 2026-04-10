@@ -2,6 +2,7 @@ package com.outletscanner.app.data.repository
 
 import android.content.Context
 import com.outletscanner.app.data.database.AppDatabase
+import com.outletscanner.app.data.model.BarcodeMapping
 import com.outletscanner.app.data.model.Product
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -13,8 +14,21 @@ class ProductRepository(context: Context) {
 
     private val db = AppDatabase.getInstance(context)
     private val dao = db.productDao()
+    private val barcodeDao = db.barcodeMappingDao()
 
+    /**
+     * Two-step lookup: barcode → itemcode (via barcode_mappings) → product (via products).
+     * Falls back to direct barcode/itemcode match in products table.
+     */
     suspend fun findByBarcode(outlet: String, barcode: String): Product? {
+        // Step 1: Try barcode mapping table first
+        val itemCode = barcodeDao.findItemCodeByBarcode(barcode)
+        if (itemCode != null) {
+            val product = dao.findByItemCode(outlet, itemCode)
+            if (product != null) return product
+        }
+
+        // Step 2: Fall back to direct lookup in products table
         return dao.findByBarcode(outlet, barcode)
     }
 
@@ -23,6 +37,14 @@ class ProductRepository(context: Context) {
     }
 
     suspend fun search(outlet: String, query: String): Product? {
+        // Try barcode mapping first
+        val itemCode = barcodeDao.findItemCodeByBarcode(query)
+        if (itemCode != null) {
+            val product = dao.findByItemCode(outlet, itemCode)
+            if (product != null) return product
+        }
+
+        // Fall back to direct search
         return dao.search(outlet, query)
     }
 
@@ -34,6 +56,10 @@ class ProductRepository(context: Context) {
         return dao.getCountForOutlet(outlet)
     }
 
+    suspend fun getBarcodeMappingCount(): Int {
+        return barcodeDao.getTotalCount()
+    }
+
     suspend fun deleteByOutlet(outlet: String) {
         dao.deleteByOutlet(outlet)
     }
@@ -42,24 +68,94 @@ class ProductRepository(context: Context) {
         dao.deleteAll()
     }
 
+    suspend fun deleteAllBarcodeMappings() {
+        barcodeDao.deleteAll()
+    }
+
+    /**
+     * Parse barcode mapping file (Itemcode|Barcode|Description) and bulk insert.
+     * Designed for 500K+ rows with batch inserts.
+     */
+    suspend fun parseAndInsertBarcodeMappings(
+        inputStream: InputStream,
+        onProgress: ((processed: Int, total: Int) -> Unit)? = null
+    ): Int = withContext(Dispatchers.IO) {
+        barcodeDao.deleteAll()
+
+        val reader = BufferedReader(InputStreamReader(inputStream), 1024 * 64)
+        val headerLine = reader.readLine() ?: return@withContext 0
+
+        val headers = headerLine.split("|").map { it.trim().lowercase().replace(" ", "_") }
+        val headerMap = headers.mapIndexed { index, name -> name to index }.toMap()
+
+        val batch = mutableListOf<BarcodeMapping>()
+        var totalInserted = 0
+        val batchSize = 5000
+
+        var line = reader.readLine()
+        while (line != null) {
+            if (line.isBlank()) {
+                line = reader.readLine()
+                continue
+            }
+
+            val fields = line.split("|")
+            if (fields.size < 2) {
+                line = reader.readLine()
+                continue
+            }
+
+            try {
+                val itemCode = getField(fields, headerMap, "itemcode", "")
+                val barcode = getField(fields, headerMap, "barcode", "")
+                val description = getField(fields, headerMap, "description", "")
+
+                if (barcode.isNotBlank() && itemCode.isNotBlank()) {
+                    batch.add(BarcodeMapping(
+                        itemCode = itemCode,
+                        barcode = barcode,
+                        description = description
+                    ))
+                }
+            } catch (e: Exception) {
+                // Skip malformed rows
+            }
+
+            if (batch.size >= batchSize) {
+                barcodeDao.insertAll(batch)
+                totalInserted += batch.size
+                onProgress?.invoke(totalInserted, -1)
+                batch.clear()
+            }
+
+            line = reader.readLine()
+        }
+
+        if (batch.isNotEmpty()) {
+            barcodeDao.insertAll(batch)
+            totalInserted += batch.size
+            onProgress?.invoke(totalInserted, -1)
+        }
+
+        reader.close()
+        totalInserted
+    }
+
     /**
      * Parse a pipe-delimited input stream and bulk insert into the database.
      * Designed for efficiency with 400K+ rows - uses batch inserts of 5000 rows.
      * Supports both old and new sync file formats via header-based column mapping.
-     * Returns the total number of rows inserted.
      */
     suspend fun parseAndInsert(
         inputStream: InputStream,
         outlet: String,
         onProgress: ((processed: Int, total: Int) -> Unit)? = null
     ): Int = withContext(Dispatchers.IO) {
-        // First, clear existing data for this outlet
         dao.deleteByOutlet(outlet)
 
-        val reader = BufferedReader(InputStreamReader(inputStream), 1024 * 64) // 64KB buffer
+        val reader = BufferedReader(InputStreamReader(inputStream), 1024 * 64)
         var headerLine = reader.readLine() ?: return@withContext 0
 
-        // Validate header - normalize: lowercase, trim, replace spaces with underscores
         val headers = headerLine.split("|").map { it.trim().lowercase().replace(" ", "_") }
         val headerMap = headers.mapIndexed { index, name -> name to index }.toMap()
 
@@ -146,7 +242,6 @@ class ProductRepository(context: Context) {
             line = reader.readLine()
         }
 
-        // Insert remaining
         if (batch.isNotEmpty()) {
             dao.insertAll(batch)
             totalInserted += batch.size
@@ -167,7 +262,6 @@ class ProductRepository(context: Context) {
         return if (index < fields.size) fields[index].trim() else default
     }
 
-    /** Try multiple header names in order (for fields that changed names between formats) */
     private fun getFieldMulti(
         fields: List<String>,
         headerMap: Map<String, Int>,

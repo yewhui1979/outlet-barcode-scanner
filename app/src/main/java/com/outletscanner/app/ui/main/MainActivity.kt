@@ -37,6 +37,12 @@ class MainActivity : AppCompatActivity() {
         uri?.let { importFileFromUri(it) }
     }
 
+    private val barcodeFilePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let { importBarcodeFileFromUri(it) }
+    }
+
     companion object {
         private const val REQUEST_SCAN = 1001
     }
@@ -95,9 +101,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Import file button
+        // Import price file button
         binding.btnImportFile.setOnClickListener {
             filePickerLauncher.launch(arrayOf("text/plain", "*/*"))
+        }
+
+        // Import barcode mapping file button
+        binding.btnImportBarcode.setOnClickListener {
+            barcodeFilePickerLauncher.launch(arrayOf("text/plain", "*/*"))
         }
 
         // Sync button
@@ -146,6 +157,48 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             } finally {
                 binding.btnImportFile.isEnabled = true
+                binding.progressSync.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun importBarcodeFileFromUri(uri: Uri) {
+        binding.btnImportBarcode.isEnabled = false
+        binding.progressSync.visibility = View.VISIBLE
+        binding.progressSync.isIndeterminate = true
+        binding.tvLastSynced.text = "Importing barcode mappings..."
+
+        lifecycleScope.launch {
+            try {
+                val count = withContext(Dispatchers.IO) {
+                    val inputStream = contentResolver.openInputStream(uri)
+                        ?: throw Exception("Cannot read file")
+                    repository.parseAndInsertBarcodeMappings(inputStream) { processed, _ ->
+                        launch(Dispatchers.Main) {
+                            binding.tvBarcodeCount.text = "Barcode mappings: $processed"
+                        }
+                    }
+                }
+
+                prefsManager.lastBarcodeSyncTimestamp = java.text.SimpleDateFormat(
+                    "yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()
+                ).format(java.util.Date())
+
+                Snackbar.make(
+                    binding.root,
+                    "Imported $count barcode mappings!",
+                    Snackbar.LENGTH_SHORT
+                ).show()
+
+                refreshUI()
+            } catch (e: Exception) {
+                Snackbar.make(
+                    binding.root,
+                    "Import failed: ${e.message ?: "Unknown error"}",
+                    Snackbar.LENGTH_LONG
+                ).show()
+            } finally {
+                binding.btnImportBarcode.isEnabled = true
                 binding.progressSync.visibility = View.GONE
             }
         }
@@ -234,6 +287,15 @@ class MainActivity : AppCompatActivity() {
                 getString(R.string.item_count, count)
             } else {
                 getString(R.string.no_items)
+            }
+
+            val barcodeCount = withContext(Dispatchers.IO) {
+                repository.getBarcodeMappingCount()
+            }
+            binding.tvBarcodeCount.text = if (barcodeCount > 0) {
+                "Barcode mappings: $barcodeCount"
+            } else {
+                "No barcode mappings loaded"
             }
         }
     }
