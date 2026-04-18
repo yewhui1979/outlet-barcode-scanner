@@ -101,6 +101,18 @@ class LoginActivity : AppCompatActivity() {
                         binding.actvOutlet.isEnabled = false
                         binding.tilOutlet.isEnabled = false
                     }
+                    ServerUserManager.ROLE_BUYER -> {
+                        if (user.assignedStore.isNotBlank()) {
+                            binding.actvOutlet.setText(user.assignedStore, false)
+                            binding.actvOutlet.isEnabled = false
+                            binding.tilOutlet.isEnabled = false
+                        } else {
+                            val savedOutlet = prefsManager.selectedOutlet
+                            if (savedOutlet.isNotBlank()) {
+                                binding.actvOutlet.setText(savedOutlet, false)
+                            }
+                        }
+                    }
                     else -> {
                         val savedOutlet = prefsManager.selectedOutlet
                         if (savedOutlet.isNotBlank()) {
@@ -162,88 +174,79 @@ class LoginActivity : AppCompatActivity() {
             var productSynced = false
             var barcodeSynced = false
 
-            // Step 1: Sync product/price data
-            if (existingCount == 0) {
-                // No data - need to sync
-                binding.tvSyncStatus.text = "Syncing price data..."
-                binding.tvSyncDetail.text = "Downloading..."
+            // Step 1: Always sync latest price data from server
+            binding.tvSyncStatus.text = "Syncing price data..."
+            binding.tvSyncDetail.text = "Downloading latest file..."
+            binding.progressSync.isIndeterminate = false
+            binding.progressSync.progress = 0
 
-                try {
-                    // First try bundled data
-                    val assetFiles = assets.list("") ?: emptyArray()
-                    val matchingFile = assetFiles.firstOrNull {
-                        it.startsWith("${outlet}_") && it.endsWith(".txt")
-                    }
-
-                    if (matchingFile != null) {
-                        binding.tvSyncDetail.text = "Loading bundled data..."
-                        withContext(Dispatchers.IO) {
-                            val inputStream = assets.open(matchingFile)
-                            repository.parseAndInsert(inputStream, outlet)
-                        }
-                        productSynced = true
-                    }
-
-                    // Then try server sync
-                    binding.tvSyncDetail.text = "Downloading from server..."
-                    binding.progressSync.isIndeterminate = false
-                    binding.progressSync.progress = 0
-
-                    val syncCount = withContext(Dispatchers.IO) {
-                        syncManager.syncData(outlet) { processed, _ ->
-                            launch(Dispatchers.Main) {
-                                binding.tvSyncDetail.text = "Price data: $processed items loaded"
-                                // Estimate progress (assume ~50K items typical)
-                                val pct = (processed * 100 / 50000).coerceAtMost(95)
-                                binding.progressSync.progress = pct
-                            }
+            try {
+                val syncCount = withContext(Dispatchers.IO) {
+                    syncManager.syncData(outlet) { processed, _ ->
+                        launch(Dispatchers.Main) {
+                            binding.tvSyncDetail.text = "Price data: $processed items loaded"
+                            val pct = (processed * 100 / 50000).coerceAtMost(95)
+                            binding.progressSync.progress = pct
                         }
                     }
-                    binding.progressSync.progress = 100
-                    binding.tvSyncDetail.text = "Price data: $syncCount items loaded"
+                }
+                binding.progressSync.progress = 100
+                binding.tvSyncDetail.text = "Price data: $syncCount items loaded"
+                productSynced = true
+            } catch (e: Exception) {
+                // Server sync failed - fall back to cached data or bundled assets
+                if (existingCount > 0) {
+                    binding.tvSyncDetail.text = "Using cached data ($existingCount items)"
                     productSynced = true
-                } catch (e: Exception) {
+                } else {
+                    // Try bundled data as last resort
+                    try {
+                        val assetFiles = assets.list("") ?: emptyArray()
+                        val matchingFile = assetFiles.firstOrNull {
+                            it.startsWith("${outlet}_") && it.endsWith(".txt")
+                        }
+                        if (matchingFile != null) {
+                            binding.tvSyncDetail.text = "Loading bundled data..."
+                            withContext(Dispatchers.IO) {
+                                val inputStream = assets.open(matchingFile)
+                                repository.parseAndInsert(inputStream, outlet)
+                            }
+                            productSynced = true
+                        }
+                    } catch (_: Exception) {}
+
                     if (!productSynced) {
                         binding.tvSyncDetail.text = "Price sync failed - import manually later"
                     }
                 }
-            } else {
-                // Data exists - skip sync
-                binding.tvSyncDetail.text = "Price data: $existingCount items (cached)"
-                binding.progressSync.isIndeterminate = false
-                binding.progressSync.progress = 50
-                productSynced = true
             }
 
-            // Step 2: Sync barcode mappings
-            if (existingBarcodeCount == 0) {
-                binding.tvSyncStatus.text = "Syncing barcode mappings..."
-                binding.tvSyncDetail.text = "Downloading barcode file..."
-                binding.progressSync.isIndeterminate = false
-                binding.progressSync.progress = 50
+            // Step 2: Always sync latest barcode mappings from server
+            binding.tvSyncStatus.text = "Syncing barcode mappings..."
+            binding.tvSyncDetail.text = "Downloading barcode file..."
+            binding.progressSync.isIndeterminate = false
+            binding.progressSync.progress = 50
 
-                try {
-                    val barcodeCount = withContext(Dispatchers.IO) {
-                        syncManager.syncBarcodeMappings { processed, _ ->
-                            launch(Dispatchers.Main) {
-                                binding.tvSyncDetail.text = "Barcode mappings: $processed loaded"
-                                val pct = 50 + (processed * 50 / 540000).coerceAtMost(49)
-                                binding.progressSync.progress = pct
-                            }
+            try {
+                val barcodeCount = withContext(Dispatchers.IO) {
+                    syncManager.syncBarcodeMappings { processed, _ ->
+                        launch(Dispatchers.Main) {
+                            binding.tvSyncDetail.text = "Barcode mappings: $processed loaded"
+                            val pct = 50 + (processed * 50 / 540000).coerceAtMost(49)
+                            binding.progressSync.progress = pct
                         }
                     }
-                    binding.progressSync.progress = 100
-                    binding.tvSyncDetail.text = "Barcode mappings: $barcodeCount loaded"
-                    barcodeSynced = true
-                } catch (e: Exception) {
-                    if (!barcodeSynced) {
-                        binding.tvSyncDetail.text = "Barcode sync failed - import manually later"
-                    }
                 }
-            } else {
-                binding.tvSyncDetail.text = "Barcode mappings: $existingBarcodeCount (cached)"
                 binding.progressSync.progress = 100
+                binding.tvSyncDetail.text = "Barcode mappings: $barcodeCount loaded"
                 barcodeSynced = true
+            } catch (e: Exception) {
+                if (existingBarcodeCount > 0) {
+                    binding.tvSyncDetail.text = "Using cached barcodes ($existingBarcodeCount)"
+                    barcodeSynced = true
+                } else {
+                    binding.tvSyncDetail.text = "Barcode sync failed - import manually later"
+                }
             }
 
             // Step 3: Sync hourly QOH data (PS__ file) - always update

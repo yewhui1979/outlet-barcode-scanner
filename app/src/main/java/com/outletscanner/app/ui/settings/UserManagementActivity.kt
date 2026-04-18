@@ -83,7 +83,7 @@ class UserManagementActivity : AppCompatActivity() {
         val actvRole = dialogView.findViewById<AutoCompleteTextView>(R.id.actvDialogRole)
         val actvStore = dialogView.findViewById<AutoCompleteTextView>(R.id.actvDialogStore)
 
-        val roles = listOf("admin", "superuser", "user")
+        val roles = listOf("admin", "superuser", "buyer", "user")
         actvRole.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, roles))
 
         actvStore.setAdapter(

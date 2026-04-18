@@ -25,6 +25,7 @@ class UserManager(context: Context) {
 
         const val ROLE_ADMIN = "admin"
         const val ROLE_SUPERUSER = "superuser"
+        const val ROLE_BUYER = "buyer"
         const val ROLE_USER = "user"
 
         fun hashPassword(password: String): String {

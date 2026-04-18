@@ -36,7 +36,7 @@ class ProductDetailActivity : AppCompatActivity() {
     private lateinit var prefsManager: PrefsManager
     private lateinit var printerManager: BluetoothPrinterManager
 
-    // All 34 product fields
+    // Product fields
     private var fOutlet = ""
     private var fItemCode = ""
     private var fItemLink = ""
@@ -106,6 +106,7 @@ class ProductDetailActivity : AppCompatActivity() {
         loadFromIntent()
         setupToolbar()
         displayProductInfo()
+        setupCostVisibility()
         setupButtons()
     }
 
@@ -166,14 +167,35 @@ class ProductDetailActivity : AppCompatActivity() {
     private fun displayProductInfo() {
         // Basic Info
         binding.tvOutlet.text = fOutlet
-        binding.tvItemCode.text = fItemCode
-        binding.tvItemLink.text = fItemLink
+        binding.tvDescription.text = fDescription
+        binding.tvPrice.text = fPrice
+        binding.tvQoh.text = fQoh
+        binding.tvMinQty.text = fMinQty
+
+        // Promotion
+        binding.tvPromoDateFrom.text = fPromoDateFrom
+        binding.tvPromoDateTo.text = fPromoDateTo
+        binding.tvPromoPrice.text = fPromoPrice
+
+        // Pending PO
+        binding.tvQtyPo.text = fQtyPo
+        binding.tvQtyReq.text = fQtyReq
+        binding.tvQtyTbr.text = fQtyTbr
+
+        // Supply Info
+        binding.tvLastGrQty.text = fLastGrQty
+        binding.tvLastGrDate.text = fLastGrDate
+        binding.tvLastGrVendor.text = fLastGrVendor
+        binding.tvVendorName.text = fVendorName
+
+        // SKU Info
         binding.tvBarcode.text = fBarcode
         binding.tvArticleNo.text = fArticleNo
-        binding.tvDescription.text = fDescription
         binding.tvPackSize.text = fPackSize
         binding.tvBulkQty.text = fBulkQty
-        binding.tvQoh.text = fQoh
+        binding.tvDepartment.text = fDepartment
+        binding.tvSubDepartment.text = fSubDepartment
+        binding.tvCategory.text = fCategory
 
         // Item Status with color
         binding.tvItemStatus.text = fItemStatus
@@ -183,52 +205,16 @@ class ProductDetailActivity : AppCompatActivity() {
             else -> binding.tvItemStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
         }
 
-        // Classification
-        binding.tvDepartment.text = fDepartment
-        binding.tvSubDepartment.text = fSubDepartment
-        binding.tvCategory.text = fCategory
-
-        // Pricing
-        binding.tvPrice.text = fPrice
-        binding.tvPromoId.text = fPromoId
-        binding.tvPromoDateFrom.text = fPromoDateFrom
-        binding.tvPromoDateTo.text = fPromoDateTo
-        binding.tvPromoPrice.text = fPromoPrice
-        binding.tvPromoFlag.text = fPromoFlag
-        binding.tvPromoSaving.text = fPromoSaving
-        binding.tvEffectivePrice.text = fEffectivePrice
-
         // Cost Info
-        binding.tvRetailExt.text = fRetailExt
         binding.tvFifoCost.text = fFifoCost
-        binding.tvFifoTotal.text = fFifoTotal
-        binding.tvFifoGp.text = fFifoGp
-        binding.tvLastCost.text = fLastCost
-        binding.tvLastCostTotal.text = fLastCostTotal
-        binding.tvLastCostGp.text = fLastCostGp
         binding.tvAvgCost.text = fAverageCost
-        binding.tvListedCost.text = fListedCost
+        binding.tvLastCost.text = fLastCost
+    }
 
-        // Inventory
-        binding.tvMinQty.text = fMinQty
-        binding.tvMaxQty.text = fMaxQty
-        binding.tvQtyPo.text = fQtyPo
-        binding.tvQtyReq.text = fQtyReq
-        binding.tvQtyTbr.text = fQtyTbr
-
-        // Transactions
-        binding.tvCpo.text = fCpo
-        binding.tvSo.text = fSo
-        binding.tvIbt.text = fIbt
-        binding.tvDn.text = fDn
-        binding.tvCn.text = fCn
-        binding.tvPos.text = fPos
-
-        // Supply Info
-        binding.tvLastGrQty.text = fLastGrQty
-        binding.tvLastGrDate.text = fLastGrDate
-        binding.tvLastGrVendor.text = fLastGrVendor
-        binding.tvVendorName.text = fVendorName
+    private fun setupCostVisibility() {
+        val role = prefsManager.currentRole
+        val canSeeCost = role == "admin" || role == "superuser" || role == "buyer"
+        binding.cardCostInfo.visibility = if (canSeeCost) View.VISIBLE else View.GONE
     }
 
     private fun setupButtons() {
@@ -481,6 +467,7 @@ class ProductDetailActivity : AppCompatActivity() {
             if (product != null) {
                 loadFromProduct(product)
                 displayProductInfo()
+                setupCostVisibility()
             } else {
                 MaterialAlertDialogBuilder(this@ProductDetailActivity)
                     .setTitle("Scan Failed")
