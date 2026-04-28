@@ -168,22 +168,22 @@ class ProductDetailActivity : AppCompatActivity() {
         // Basic Info
         binding.tvOutlet.text = fOutlet
         binding.tvDescription.text = fDescription
-        binding.tvPrice.text = fPrice
-        binding.tvQoh.text = fQoh
-        binding.tvMinQty.text = fMinQty
+        binding.tvPrice.text = formatCost(fPrice)
+        binding.tvQoh.text = formatQty(fQoh)
+        binding.tvMinQty.text = formatQty(fMinQty)
 
         // Promotion
         binding.tvPromoDateFrom.text = fPromoDateFrom
         binding.tvPromoDateTo.text = fPromoDateTo
-        binding.tvPromoPrice.text = fPromoPrice
+        binding.tvPromoPrice.text = formatCost(fPromoPrice)
 
         // Pending PO
-        binding.tvQtyPo.text = fQtyPo
-        binding.tvQtyReq.text = fQtyReq
-        binding.tvQtyTbr.text = fQtyTbr
+        binding.tvQtyPo.text = formatQty(fQtyPo)
+        binding.tvQtyReq.text = formatQty(fQtyReq)
+        binding.tvQtyTbr.text = formatQty(fQtyTbr)
 
         // Supply Info
-        binding.tvLastGrQty.text = fLastGrQty
+        binding.tvLastGrQty.text = formatQty(fLastGrQty)
         binding.tvLastGrDate.text = fLastGrDate
         binding.tvLastGrVendor.text = fLastGrVendor
         binding.tvVendorName.text = fVendorName
@@ -192,7 +192,7 @@ class ProductDetailActivity : AppCompatActivity() {
         binding.tvBarcode.text = fBarcode
         binding.tvArticleNo.text = fArticleNo
         binding.tvPackSize.text = fPackSize
-        binding.tvBulkQty.text = fBulkQty
+        binding.tvBulkQty.text = formatQty(fBulkQty)
         binding.tvDepartment.text = fDepartment
         binding.tvSubDepartment.text = fSubDepartment
         binding.tvCategory.text = fCategory
@@ -205,10 +205,30 @@ class ProductDetailActivity : AppCompatActivity() {
             else -> binding.tvItemStatus.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
         }
 
-        // Cost Info
-        binding.tvFifoCost.text = fFifoCost
-        binding.tvAvgCost.text = fAverageCost
-        binding.tvLastCost.text = fLastCost
+        // Cost Info (2 decimal places)
+        binding.tvFifoCost.text = formatCost(fFifoCost)
+        binding.tvAvgCost.text = formatCost(fAverageCost)
+        binding.tvLastCost.text = formatCost(fLastCost)
+    }
+
+    private fun formatCost(value: String): String {
+        if (value.isBlank()) return ""
+        return try {
+            String.format("%.2f", value.trim().toDouble())
+        } catch (e: Exception) {
+            value
+        }
+    }
+
+    private fun formatQty(value: String): String {
+        if (value.isBlank()) return ""
+        return try {
+            val d = value.trim().toDouble()
+            if (d == d.toLong().toDouble()) d.toLong().toString()
+            else String.format("%.0f", d)
+        } catch (e: Exception) {
+            value
+        }
     }
 
     private fun setupCostVisibility() {

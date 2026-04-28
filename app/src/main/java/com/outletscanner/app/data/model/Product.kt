@@ -159,24 +159,10 @@ data class Product(
         get() = promoFlag.trim().uppercase() == "Y" || promoPrice.trim().isNotEmpty()
 
     val formattedPrice: String
-        get() {
-            return try {
-                val p = price.trim().toDouble()
-                String.format("%.2f", p)
-            } catch (e: Exception) {
-                price
-            }
-        }
+        get() = formatCost(price)
 
     val formattedEffectivePrice: String
-        get() {
-            return try {
-                val p = effectivePrice.trim().toDouble()
-                String.format("%.2f", p)
-            } catch (e: Exception) {
-                effectivePrice
-            }
-        }
+        get() = formatCost(effectivePrice)
 
     val formattedPromoPrice: String
         get() {
@@ -187,4 +173,50 @@ data class Product(
                 ""
             }
         }
+
+    val formattedFifoCost: String get() = formatCost(fifoCost)
+    val formattedFifoTotal: String get() = formatCost(fifoTotal)
+    val formattedLastCost: String get() = formatCost(lastCost)
+    val formattedLastCostTotal: String get() = formatCost(lastCostTotal)
+    val formattedAverageCost: String get() = formatCost(averageCost)
+    val formattedListedCost: String get() = formatCost(listedCost)
+    val formattedRetailExt: String get() = formatCost(retailExt)
+    val formattedPromoSaving: String get() = formatCost(promoSaving)
+    val formattedFifoGp: String get() = formatCost(fifoGp)
+    val formattedLastCostGp: String get() = formatCost(lastCostGp)
+
+    val formattedQoh: String get() = formatQty(qoh)
+    val formattedBulkQty: String get() = formatQty(bulkQty)
+    val formattedMinQty: String get() = formatQty(minQty)
+    val formattedMaxQty: String get() = formatQty(maxQty)
+    val formattedPo: String get() = formatQty(po)
+    val formattedCpo: String get() = formatQty(cpo)
+    val formattedSo: String get() = formatQty(so)
+    val formattedIbt: String get() = formatQty(ibt)
+    val formattedDn: String get() = formatQty(dn)
+    val formattedCn: String get() = formatQty(cn)
+    val formattedPos: String get() = formatQty(pos)
+    val formattedQtyReq: String get() = formatQty(qtyReq)
+    val formattedQtyTbr: String get() = formatQty(qtyTbr)
+    val formattedLastGrQty: String get() = formatQty(lastGrQty)
+
+    private fun formatCost(value: String): String {
+        if (value.isBlank()) return ""
+        return try {
+            String.format("%.2f", value.trim().toDouble())
+        } catch (e: Exception) {
+            value
+        }
+    }
+
+    private fun formatQty(value: String): String {
+        if (value.isBlank()) return ""
+        return try {
+            val d = value.trim().toDouble()
+            if (d == d.toLong().toDouble()) d.toLong().toString()
+            else String.format("%.0f", d)
+        } catch (e: Exception) {
+            value
+        }
+    }
 }

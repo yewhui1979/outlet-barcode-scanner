@@ -91,14 +91,29 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, "Server URL saved", Toast.LENGTH_SHORT).show()
         }
 
-        // Change Outlet
+        // Change Outlet - clear local data so fresh data downloads for the new store
         binding.cardChangeOutlet.setOnClickListener {
-            prefsManager.logout()
-            val intent = Intent(this, LoginActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            }
-            startActivity(intent)
-            finish()
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Change Outlet")
+                .setMessage("This will clear all cached data and download fresh data for the new outlet. Continue?")
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.confirm) { _, _ ->
+                    lifecycleScope.launch {
+                        withContext(Dispatchers.IO) {
+                            repository.deleteAll()
+                        }
+                        prefsManager.lastSyncTimestamp = ""
+                        prefsManager.lastBarcodeSyncTimestamp = ""
+                        prefsManager.lastStockSyncTimestamp = ""
+                        prefsManager.logout()
+                        val intent = Intent(this@SettingsActivity, LoginActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        startActivity(intent)
+                        finish()
+                    }
+                }
+                .show()
         }
 
         // Clear Data
