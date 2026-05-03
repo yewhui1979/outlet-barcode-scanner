@@ -233,7 +233,7 @@ class ProductDetailActivity : AppCompatActivity() {
 
     private fun setupCostVisibility() {
         val role = prefsManager.currentRole
-        val canSeeCost = role == "admin" || role == "superuser" || role == "buyer"
+        val canSeeCost = role == "admin" || role == "buyer"
         binding.cardCostInfo.visibility = if (canSeeCost) View.VISIBLE else View.GONE
     }
 
