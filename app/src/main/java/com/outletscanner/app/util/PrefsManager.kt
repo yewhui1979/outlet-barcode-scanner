@@ -24,15 +24,16 @@ class PrefsManager(context: Context) {
         const val DEFAULT_SERVER_URL = "http://43.216.228.22"
 
         val OUTLETS = listOf(
-            "AJB", "AM", "ASP", "BG", "BM",
+            "AJB", "AM", "ASP", "BG", "BJ", "BM",
             "DAD", "ENS",
             "H025", "H026", "H027", "H028", "H029", "H031",
             "JSA", "KJ", "KK",
             "MJ",
             "PC", "PJ3", "PS",
             "RS",
-            "SB", "SD", "SJ", "SM07", "SMP", "SS",
-            "TDT", "TSS"
+            "SB", "SD", "SJ", "SM07", "SM09", "SMP", "SS",
+            "TD", "TDT", "TP", "TPJ", "TSS",
+            "WM"
         )
     }
 
