@@ -163,6 +163,17 @@ class LoginActivity : AppCompatActivity() {
         binding.tvSyncDetail.text = "Checking existing data..."
 
         lifecycleScope.launch {
+            val previousOutlet = prefsManager.lastSyncedOutlet
+            if (previousOutlet.isNotBlank() && previousOutlet != outlet) {
+                binding.tvSyncDetail.text = "Store changed ($previousOutlet → $outlet), clearing old data..."
+                withContext(Dispatchers.IO) {
+                    repository.deleteAll()
+                }
+                prefsManager.lastSyncTimestamp = ""
+                prefsManager.lastStockSyncTimestamp = ""
+            }
+            prefsManager.lastSyncedOutlet = outlet
+
             // Check if data already exists for this outlet
             val existingCount = withContext(Dispatchers.IO) {
                 repository.getItemCount(outlet)
@@ -174,9 +185,9 @@ class LoginActivity : AppCompatActivity() {
             var productSynced = false
             var barcodeSynced = false
 
-            // Step 1: Always sync latest price data from server
-            binding.tvSyncStatus.text = "Syncing price data..."
-            binding.tvSyncDetail.text = "Downloading latest file..."
+            // Step 1: Sync price data (only downloads if server file is newer)
+            binding.tvSyncStatus.text = "Checking price data..."
+            binding.tvSyncDetail.text = "Checking for updates..."
             binding.progressSync.isIndeterminate = false
             binding.progressSync.progress = 0
 
@@ -191,7 +202,11 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
                 binding.progressSync.progress = 100
-                binding.tvSyncDetail.text = "Price data: $syncCount items loaded"
+                if (syncCount == -1) {
+                    binding.tvSyncDetail.text = "Price data: up to date ($existingCount items)"
+                } else {
+                    binding.tvSyncDetail.text = "Price data: $syncCount items loaded"
+                }
                 productSynced = true
             } catch (e: Exception) {
                 // Server sync failed - fall back to cached data or bundled assets
@@ -221,9 +236,9 @@ class LoginActivity : AppCompatActivity() {
                 }
             }
 
-            // Step 2: Always sync latest barcode mappings from server
-            binding.tvSyncStatus.text = "Syncing barcode mappings..."
-            binding.tvSyncDetail.text = "Downloading barcode file..."
+            // Step 2: Sync barcode mappings (only downloads if server file is newer)
+            binding.tvSyncStatus.text = "Checking barcode mappings..."
+            binding.tvSyncDetail.text = "Checking for updates..."
             binding.progressSync.isIndeterminate = false
             binding.progressSync.progress = 50
 
@@ -238,7 +253,11 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
                 binding.progressSync.progress = 100
-                binding.tvSyncDetail.text = "Barcode mappings: $barcodeCount loaded"
+                if (barcodeCount == -1) {
+                    binding.tvSyncDetail.text = "Barcode mappings: up to date ($existingBarcodeCount)"
+                } else {
+                    binding.tvSyncDetail.text = "Barcode mappings: $barcodeCount loaded"
+                }
                 barcodeSynced = true
             } catch (e: Exception) {
                 if (existingBarcodeCount > 0) {

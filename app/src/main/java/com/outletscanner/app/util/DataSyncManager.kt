@@ -24,8 +24,32 @@ class DataSyncManager(private val context: Context) {
         .build()
 
     /**
+     * Check if server file has been modified since our last sync.
+     * Uses HTTP HEAD request to check Last-Modified header.
+     * Returns true if file is newer or if check fails (download to be safe).
+     */
+    private fun isServerFileNewer(url: String, lastSyncTimestamp: String?): Boolean {
+        if (lastSyncTimestamp.isNullOrBlank()) return true
+        try {
+            val request = Request.Builder().url(url).head().build()
+            val response = client.newCall(request).execute()
+            val lastModified = response.header("Last-Modified") ?: return true
+            response.close()
+
+            val serverFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US)
+            val localFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val serverDate = serverFormat.parse(lastModified) ?: return true
+            val localDate = localFormat.parse(lastSyncTimestamp) ?: return true
+            return serverDate.after(localDate)
+        } catch (_: Exception) {
+            return true // Download to be safe if check fails
+        }
+    }
+
+    /**
      * Download product data file from the configured server URL and parse it.
-     * Returns the number of items synced.
+     * Only downloads if server file is newer than last sync.
+     * Returns the number of items synced, or -1 if skipped (already up to date).
      */
     suspend fun syncData(
         outlet: String,
@@ -41,6 +65,11 @@ class DataSyncManager(private val context: Context) {
             serverUrl
         } else {
             "$serverUrl/data/price/${outlet}.txt"
+        }
+
+        // Skip if file hasn't changed since last sync
+        if (!isServerFileNewer(url, prefsManager.lastSyncTimestamp)) {
+            return@withContext -1
         }
 
         val request = Request.Builder()
@@ -66,7 +95,8 @@ class DataSyncManager(private val context: Context) {
 
     /**
      * Download barcode mapping file from the configured server URL and parse it.
-     * Returns the number of barcode mappings synced.
+     * Only downloads if server file is newer than last sync.
+     * Returns the number of barcode mappings synced, or -1 if skipped.
      */
     suspend fun syncBarcodeMappings(
         onProgress: ((processed: Int, total: Int) -> Unit)? = null
@@ -78,6 +108,11 @@ class DataSyncManager(private val context: Context) {
 
         // Daily barcode file: /data/barcode/HHT_Barcode.txt
         val url = "$serverUrl/data/barcode/HHT_Barcode.txt"
+
+        // Skip if file hasn't changed since last sync
+        if (!isServerFileNewer(url, prefsManager.lastBarcodeSyncTimestamp)) {
+            return@withContext -1
+        }
 
         val request = Request.Builder()
             .url(url)
@@ -101,8 +136,8 @@ class DataSyncManager(private val context: Context) {
     }
 
     /**
-     * Download hourly stock file (PS__) from server and update QOH.
-     * File pattern: {serverUrl}/data/{outlet}_stock.txt
+     * Download hourly stock file from server and update QOH.
+     * Stock files change frequently, so always download.
      */
     suspend fun syncStockData(
         outlet: String,
