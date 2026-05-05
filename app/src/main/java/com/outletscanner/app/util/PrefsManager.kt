@@ -22,7 +22,7 @@ class PrefsManager(context: Context) {
         private const val KEY_LAST_STOCK_SYNC = "last_stock_sync"
         private const val KEY_LAST_SYNCED_OUTLET = "last_synced_outlet"
 
-        const val DEFAULT_SERVER_URL = "http://43.216.228.22"
+        const val DEFAULT_SERVER_URL = "http://56.69.9.25"
 
         val OUTLETS = listOf(
             "AJB", "AM", "ASP", "BG", "BJ", "BM",
