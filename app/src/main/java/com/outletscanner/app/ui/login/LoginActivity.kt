@@ -289,6 +289,24 @@ class LoginActivity : AppCompatActivity() {
                 binding.tvSyncDetail.text = "QOH update skipped"
             }
 
+            // Step 4: Sync PO fulfillment data (non-blocking)
+            binding.tvSyncStatus.text = "Syncing PO data..."
+            binding.tvSyncDetail.text = "Downloading PO fulfillment..."
+            binding.progressSync.isIndeterminate = true
+
+            try {
+                val poCount = withContext(Dispatchers.IO) {
+                    syncManager.syncPoData(outlet) { processed, _ ->
+                        launch(Dispatchers.Main) {
+                            binding.tvSyncDetail.text = "PO records: $processed loaded"
+                        }
+                    }
+                }
+                binding.tvSyncDetail.text = "PO records: $poCount loaded"
+            } catch (e: Exception) {
+                binding.tvSyncDetail.text = "PO sync skipped"
+            }
+
             // Done - show summary briefly then navigate
             binding.tvSyncStatus.text = "Sync complete!"
             binding.progressSync.isIndeterminate = false

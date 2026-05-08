@@ -41,4 +41,28 @@ interface ProductDao {
 
     @Query("SELECT COUNT(*) FROM products")
     suspend fun getTotalCount(): Int
+
+    @Query("SELECT * FROM products WHERE outlet = :outlet AND CAST(qoh AS REAL) = 0 AND item_status = 'Active' AND CAST(bulk_qty AS REAL) <= 1 ORDER BY department, description")
+    suspend fun getOutOfStockItems(outlet: String): List<Product>
+
+    @Query("SELECT COUNT(*) FROM products WHERE outlet = :outlet AND CAST(qoh AS REAL) = 0 AND item_status = 'Active' AND CAST(bulk_qty AS REAL) <= 1")
+    suspend fun getOutOfStockCount(outlet: String): Int
+
+    @Query("SELECT * FROM products WHERE outlet = :outlet AND CAST(qoh AS REAL) < 0 AND item_status = 'Active' AND CAST(bulk_qty AS REAL) <= 1 ORDER BY CAST(qoh AS REAL) ASC, department, description")
+    suspend fun getNegativeStockItems(outlet: String): List<Product>
+
+    @Query("SELECT COUNT(*) FROM products WHERE outlet = :outlet AND CAST(qoh AS REAL) < 0 AND item_status = 'Active' AND CAST(bulk_qty AS REAL) <= 1")
+    suspend fun getNegativeStockCount(outlet: String): Int
+
+    @Query("SELECT * FROM products WHERE outlet = :outlet AND CAST(qoh AS REAL) = 0 AND item_status = 'Active' AND CAST(bulk_qty AS REAL) <= 1 AND (:dept = '' OR department = :dept) AND (:subDept = '' OR sub_department = :subDept) ORDER BY department, description")
+    suspend fun getOutOfStockItemsFiltered(outlet: String, dept: String, subDept: String): List<Product>
+
+    @Query("SELECT * FROM products WHERE outlet = :outlet AND CAST(qoh AS REAL) < 0 AND item_status = 'Active' AND CAST(bulk_qty AS REAL) <= 1 AND (:dept = '' OR department = :dept) AND (:subDept = '' OR sub_department = :subDept) ORDER BY CAST(qoh AS REAL) ASC, department, description")
+    suspend fun getNegativeStockItemsFiltered(outlet: String, dept: String, subDept: String): List<Product>
+
+    @Query("SELECT DISTINCT department FROM products WHERE outlet = :outlet AND department != '' ORDER BY department")
+    suspend fun getDistinctDepartments(outlet: String): List<String>
+
+    @Query("SELECT DISTINCT sub_department FROM products WHERE outlet = :outlet AND (:dept = '' OR department = :dept) AND sub_department != '' ORDER BY sub_department")
+    suspend fun getDistinctSubDepartments(outlet: String, dept: String): List<String>
 }

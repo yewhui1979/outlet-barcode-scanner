@@ -21,6 +21,7 @@ class PrefsManager(context: Context) {
         private const val KEY_LAST_BARCODE_SYNC = "last_barcode_sync"
         private const val KEY_LAST_STOCK_SYNC = "last_stock_sync"
         private const val KEY_LAST_SYNCED_OUTLET = "last_synced_outlet"
+        private const val KEY_SESSION_TOKEN = "session_token"
 
         const val DEFAULT_SERVER_URL = "http://56.69.9.25"
 
@@ -73,6 +74,10 @@ class PrefsManager(context: Context) {
     var lastSyncedOutlet: String
         get() = prefs.getString(KEY_LAST_SYNCED_OUTLET, "") ?: ""
         set(value) = prefs.edit().putString(KEY_LAST_SYNCED_OUTLET, value).apply()
+
+    var sessionToken: String
+        get() = prefs.getString(KEY_SESSION_TOKEN, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SESSION_TOKEN, value).apply()
 
     var savedPrinterAddress: String
         get() = prefs.getString(KEY_PRINTER_ADDRESS, "") ?: ""

@@ -17,6 +17,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import android.text.InputType
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import com.outletscanner.app.R
 import com.outletscanner.app.data.model.Product
 import com.outletscanner.app.data.repository.ProductRepository
@@ -25,6 +29,12 @@ import com.outletscanner.app.ui.scanner.ScannerActivity
 import com.outletscanner.app.util.BluetoothPrinterManager
 import com.outletscanner.app.util.PdfLabelGenerator
 import com.outletscanner.app.util.PrefsManager
+import com.outletscanner.app.data.database.AppDatabase
+import com.outletscanner.app.data.model.MinMaxChange
+import com.outletscanner.app.util.ServerUserManager
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -107,7 +117,9 @@ class ProductDetailActivity : AppCompatActivity() {
         setupToolbar()
         displayProductInfo()
         setupCostVisibility()
+        setupMinMaxEditable()
         setupButtons()
+        loadPoStatus(fItemCode)
     }
 
     private fun loadFromIntent() {
@@ -444,6 +456,167 @@ class ProductDetailActivity : AppCompatActivity() {
         }
     }
 
+    // ── Min/Max Qty Edit ─────────────────────────────────────────────────
+
+    private fun setupMinMaxEditable() {
+        val role = prefsManager.currentRole
+        if (role != ServerUserManager.ROLE_ADMIN && role != ServerUserManager.ROLE_MANAGER) return
+
+        binding.tvMinQty.setOnClickListener {
+            showMinMaxEditDialog()
+        }
+        binding.tvMinQty.setTextColor(0xFF1565C0.toInt())
+        binding.tvMinQty.paintFlags = binding.tvMinQty.paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+    }
+
+    private fun showMinMaxEditDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dpToPx(24), dpToPx(16), dpToPx(24), 0)
+        }
+
+        val etMin = EditText(this).apply {
+            hint = "Min Qty"
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(fMinQty)
+        }
+        layout.addView(etMin)
+
+        val etMax = EditText(this).apply {
+            hint = "Max Qty"
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            setText(fMaxQty)
+        }
+        layout.addView(etMax)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Proposal Min and Max Qty")
+            .setView(layout)
+            .setPositiveButton("Save") { _, _ ->
+                val newMin = etMin.text.toString().trim()
+                val newMax = etMax.text.toString().trim()
+                if (newMin.isNotBlank() || newMax.isNotBlank()) {
+                    fMinQty = newMin
+                    fMaxQty = newMax
+                    binding.tvMinQty.text = formatQty(fMinQty)
+                    saveMinMaxLocally(fOutlet, fItemCode, newMin, newMax)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun saveMinMaxLocally(outlet: String, itemCode: String, minQty: String, maxQty: String) {
+        lifecycleScope.launch {
+            try {
+                val dao = AppDatabase.getInstance(this@ProductDetailActivity).minMaxChangeDao()
+                val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                withContext(Dispatchers.IO) {
+                    dao.insert(MinMaxChange(
+                        outlet = outlet,
+                        itemcode = itemCode,
+                        minQty = minQty,
+                        maxQty = maxQty,
+                        changedBy = prefsManager.currentUsername,
+                        changedAt = sdf.format(Date())
+                    ))
+                }
+                val count = withContext(Dispatchers.IO) { dao.getCountByOutlet(outlet) }
+                Snackbar.make(binding.root, "Min/Max saved ($count pending changes)", Snackbar.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Snackbar.make(binding.root, "Error: ${e.message}", Snackbar.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // ── PO Status ────────────────────────────────────────────────────────
+
+    private fun loadPoStatus(itemCode: String) {
+        if (itemCode.isBlank()) return
+
+        lifecycleScope.launch {
+            val poRecords = withContext(Dispatchers.IO) {
+                repository.getOpenPoForItem(itemCode)
+            }
+
+            val alertRecords = poRecords.filter {
+                it.status == "DROP_PO" || it.status == "PARTIAL_PO"
+            }
+
+            if (alertRecords.isEmpty()) {
+                binding.cardPoStatus.visibility = View.GONE
+                return@launch
+            }
+
+            binding.cardPoStatus.visibility = View.VISIBLE
+            binding.layoutPoEntries.removeAllViews()
+
+            val dropCount = alertRecords.count { it.status == "DROP_PO" }
+            val partialCount = alertRecords.count { it.status == "PARTIAL_PO" }
+            val headerParts = mutableListOf<String>()
+            if (dropCount > 0) headerParts.add("$dropCount Drop PO")
+            if (partialCount > 0) headerParts.add("$partialCount Partial PO")
+            binding.tvPoStatusHeader.text = "PO ALERT - ${headerParts.joinToString(", ")}"
+
+            for (po in alertRecords) {
+                val entryLayout = LinearLayout(this@ProductDetailActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(0, 0, 0, dpToPx(12))
+                }
+
+                val statusLabel = if (po.status == "DROP_PO") "DROP PO" else "PARTIAL PO"
+                val statusColor = if (po.status == "DROP_PO") 0xFFC62828.toInt() else 0xFFE65100.toInt()
+
+                val tvStatus = TextView(this@ProductDetailActivity).apply {
+                    text = statusLabel
+                    setTextColor(statusColor)
+                    textSize = 13f
+                    setTypeface(typeface, android.graphics.Typeface.BOLD)
+                }
+                entryLayout.addView(tvStatus)
+
+                val tvPoRef = TextView(this@ProductDetailActivity).apply {
+                    text = "PO#: ${po.poRefno}  |  Date: ${po.poDate}"
+                    setTextColor(ContextCompat.getColor(this@ProductDetailActivity, R.color.text_primary))
+                    textSize = 13f
+                }
+                entryLayout.addView(tvPoRef)
+
+                val poQtyVal = try { po.poQty.toDouble().toLong().toString() } catch (_: Exception) { po.poQty }
+                val grQtyVal = try { po.grQty.toDouble().toLong().toString() } catch (_: Exception) { po.grQty }
+                val shortVal = try { po.shortQty.toDouble().toLong().toString() } catch (_: Exception) { po.shortQty }
+
+                val detail = if (po.status == "DROP_PO") {
+                    "PO Qty: $poQtyVal  |  Expired: ${po.poExpiryDate}"
+                } else {
+                    "PO Qty: $poQtyVal  |  GR Qty: $grQtyVal  |  Short: $shortVal"
+                }
+
+                val tvDetail = TextView(this@ProductDetailActivity).apply {
+                    text = detail
+                    setTextColor(ContextCompat.getColor(this@ProductDetailActivity, R.color.text_secondary))
+                    textSize = 12f
+                }
+                entryLayout.addView(tvDetail)
+
+                if (po.supplierName.isNotBlank()) {
+                    val tvSupplier = TextView(this@ProductDetailActivity).apply {
+                        text = "Supplier: ${po.supplierName}"
+                        setTextColor(ContextCompat.getColor(this@ProductDetailActivity, R.color.text_secondary))
+                        textSize = 12f
+                    }
+                    entryLayout.addView(tvSupplier)
+                }
+
+                binding.layoutPoEntries.addView(entryLayout)
+            }
+        }
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private fun buildCurrentProduct(): Product {
@@ -488,6 +661,7 @@ class ProductDetailActivity : AppCompatActivity() {
                 loadFromProduct(product)
                 displayProductInfo()
                 setupCostVisibility()
+                loadPoStatus(product.itemCode)
             } else {
                 MaterialAlertDialogBuilder(this@ProductDetailActivity)
                     .setTitle("Scan Failed")

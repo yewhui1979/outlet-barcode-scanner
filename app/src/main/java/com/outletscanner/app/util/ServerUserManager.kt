@@ -11,11 +11,6 @@ import org.json.JSONObject
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
-/**
- * Server-side user management. All user accounts are stored in the central database
- * on the AWS server. Admin manages users from one place, all phones authenticate
- * against the same database.
- */
 class ServerUserManager(context: Context) {
 
     private val prefsManager = PrefsManager(context)
@@ -28,6 +23,7 @@ class ServerUserManager(context: Context) {
     companion object {
         const val ROLE_ADMIN = "admin"
         const val ROLE_SUPERUSER = "superuser"
+        const val ROLE_MANAGER = "manager"
         const val ROLE_BUYER = "buyer"
         const val ROLE_USER = "user"
 
@@ -43,11 +39,6 @@ class ServerUserManager(context: Context) {
         return "$baseUrl/api_users.php?action=$action"
     }
 
-    /**
-     * Authenticate user against the server database.
-     * Returns User on success, null on failure.
-     * Falls back to local auth if server is unreachable.
-     */
     suspend fun authenticate(username: String, password: String): User? = withContext(Dispatchers.IO) {
         val hash = hashPassword(password)
 
@@ -69,6 +60,10 @@ class ServerUserManager(context: Context) {
             val result = JSONObject(responseBody)
             if (result.getBoolean("success")) {
                 val userObj = result.getJSONObject("user")
+                val sessionToken = userObj.optString("session_token", "")
+                if (sessionToken.isNotBlank()) {
+                    prefsManager.sessionToken = sessionToken
+                }
                 User(
                     username = userObj.getString("username"),
                     passwordHash = hash,
@@ -79,14 +74,41 @@ class ServerUserManager(context: Context) {
                 null
             }
         } catch (e: Exception) {
-            // Server unreachable - fall back to local UserManager
             null
         }
     }
 
-    /**
-     * Get all users from server (admin only).
-     */
+    suspend fun validateSession(): Boolean = withContext(Dispatchers.IO) {
+        val username = prefsManager.currentUsername
+        val token = prefsManager.sessionToken
+        if (username.isBlank() || token.isBlank()) return@withContext true
+
+        try {
+            val json = JSONObject().apply {
+                put("username", username)
+                put("session_token", token)
+            }
+
+            val body = json.toString().toRequestBody("application/json".toMediaType())
+            val request = Request.Builder()
+                .url(getApiUrl("validate_session"))
+                .post(body)
+                .build()
+
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: return@withContext true
+
+            val result = JSONObject(responseBody)
+            if (result.getBoolean("success")) {
+                result.getBoolean("valid")
+            } else {
+                true
+            }
+        } catch (e: Exception) {
+            true
+        }
+    }
+
     suspend fun getAllUsers(): List<User> = withContext(Dispatchers.IO) {
         try {
             val request = Request.Builder()
@@ -118,9 +140,6 @@ class ServerUserManager(context: Context) {
         }
     }
 
-    /**
-     * Add a new user on the server.
-     */
     suspend fun addUser(username: String, password: String, role: String, assignedStore: String = ""): Boolean = withContext(Dispatchers.IO) {
         try {
             val json = JSONObject().apply {
@@ -145,9 +164,6 @@ class ServerUserManager(context: Context) {
         }
     }
 
-    /**
-     * Delete a user on the server.
-     */
     suspend fun removeUser(username: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val json = JSONObject().apply {

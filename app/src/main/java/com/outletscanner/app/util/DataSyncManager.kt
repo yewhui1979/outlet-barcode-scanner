@@ -173,6 +173,37 @@ class DataSyncManager(private val context: Context) {
     }
 
     /**
+     * Download PO fulfillment data and insert into po_records table.
+     * Only stores DROP_PO, PARTIAL_PO, PENDING records (not FULFILLED).
+     */
+    suspend fun syncPoData(
+        outlet: String,
+        onProgress: ((processed: Int, total: Int) -> Unit)? = null
+    ): Int = withContext(Dispatchers.IO) {
+        val serverUrl = prefsManager.serverUrl.trimEnd('/')
+        if (serverUrl.isBlank()) {
+            throw IllegalStateException("Server URL not configured.")
+        }
+
+        val url = "$serverUrl/data/po/${outlet}.txt"
+
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        val response = client.newCall(request).execute()
+
+        if (!response.isSuccessful) {
+            throw Exception("Server returned ${response.code}: ${response.message}")
+        }
+
+        val body = response.body
+            ?: throw Exception("Empty response from server")
+
+        repository.parseAndInsertPoRecords(body.byteStream(), onProgress)
+    }
+
+    /**
      * Parse a local product data file and import it.
      */
     suspend fun importFromStream(

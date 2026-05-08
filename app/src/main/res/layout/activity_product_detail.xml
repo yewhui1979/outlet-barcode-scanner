@@ -226,6 +226,43 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- PO STATUS Card (Drop PO / Partial PO alerts) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPoStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/padding_small"
+                android:visibility="gone"
+                app:cardCornerRadius="@dimen/corner_radius"
+                app:cardElevation="@dimen/card_elevation"
+                app:strokeColor="#E65100"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/padding_large">
+
+                    <TextView
+                        android:id="@+id/tvPoStatusHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="PO ALERT"
+                        android:textColor="#C62828"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutPoEntries"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- SKU INFO Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"

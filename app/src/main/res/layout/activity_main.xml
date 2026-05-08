@@ -125,18 +125,63 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tilSearch" />
 
+    <!-- Stock Alert Buttons -->
+    <LinearLayout
+        android:id="@+id/layoutStockAlerts"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/padding_medium"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnScan">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOutOfStock"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Out of Stock"
+            android:textSize="12sp"
+            app:icon="@drawable/ic_warning"
+            app:iconSize="18dp"
+            app:strokeColor="@color/error"
+            android:textColor="@color/error"
+            app:iconTint="@color/error" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNegativeStock"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Negative Stock"
+            android:textSize="12sp"
+            app:icon="@drawable/ic_warning"
+            app:iconSize="18dp"
+            app:strokeColor="@color/warning_orange"
+            android:textColor="@color/warning_orange"
+            app:iconTint="@color/warning_orange" />
+
+    </LinearLayout>
+
     <!-- Info Section -->
     <LinearLayout
         android:id="@+id/layoutSync"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/padding_medium"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:gravity="center"
         android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnScan">
+        app:layout_constraintTop_toBottomOf="@id/layoutStockAlerts">
 
         <TextView
             android:id="@+id/tvBarcodeCount"

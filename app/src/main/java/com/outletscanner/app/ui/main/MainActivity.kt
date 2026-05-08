@@ -1,6 +1,14 @@
 package com.outletscanner.app.ui.main
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.os.Build
 import android.os.Bundle
 import android.view.inputmethod.EditorInfo
 import androidx.appcompat.app.AppCompatActivity
@@ -11,10 +19,13 @@ import com.outletscanner.app.R
 import com.outletscanner.app.data.model.Product
 import com.outletscanner.app.data.repository.ProductRepository
 import com.outletscanner.app.databinding.ActivityMainBinding
+import com.outletscanner.app.ui.login.LoginActivity
 import com.outletscanner.app.ui.product.ProductDetailActivity
 import com.outletscanner.app.ui.scanner.ScannerActivity
 import com.outletscanner.app.ui.settings.SettingsActivity
+import com.outletscanner.app.ui.stock.StockListActivity
 import com.outletscanner.app.util.PrefsManager
+import com.outletscanner.app.worker.SyncWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,9 +35,41 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefsManager: PrefsManager
     private lateinit var repository: ProductRepository
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     companion object {
         private const val REQUEST_SCAN = 1001
+    }
+
+    private val syncReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                SyncWorker.ACTION_SYNC_COMPLETE -> {
+                    val success = intent.getBooleanExtra(SyncWorker.EXTRA_SYNC_SUCCESS, false)
+                    val syncTime = intent.getStringExtra(SyncWorker.EXTRA_SYNC_TIME) ?: ""
+                    if (success && syncTime.isNotBlank()) {
+                        binding.tvLastSynced.text = getString(R.string.last_synced, syncTime)
+                        updateItemCount()
+                        Snackbar.make(binding.root, "Data refreshed", Snackbar.LENGTH_SHORT).show()
+                    }
+                }
+                SyncWorker.ACTION_SESSION_INVALID -> {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle("Session Expired")
+                        .setMessage("Another device has logged in with this account. You will be logged out.")
+                        .setCancelable(false)
+                        .setPositiveButton("OK") { _, _ ->
+                            prefsManager.logout()
+                            prefsManager.sessionToken = ""
+                            startActivity(Intent(this@MainActivity, LoginActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            })
+                            finish()
+                        }
+                        .show()
+                }
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,11 +83,70 @@ class MainActivity : AppCompatActivity() {
         setupToolbar()
         setupUI()
         setupListeners()
+        registerNetworkCallback()
     }
 
     override fun onResume() {
         super.onResume()
         refreshUI()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val filter = IntentFilter().apply {
+            addAction(SyncWorker.ACTION_SYNC_COMPLETE)
+            addAction(SyncWorker.ACTION_SESSION_INVALID)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(syncReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(syncReceiver, filter)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try { unregisterReceiver(syncReceiver) } catch (_: Exception) {}
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        networkCallback?.let {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            cm.unregisterNetworkCallback(it)
+        }
+    }
+
+    private fun registerNetworkCallback() {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onLost(network: Network) {
+                runOnUiThread {
+                    val lastSync = prefsManager.lastStockSyncTimestamp.ifBlank {
+                        prefsManager.lastSyncTimestamp
+                    }
+                    val msg = if (lastSync.isNotBlank()) {
+                        "Unable to update latest data. Data is accurate on last sync data ($lastSync). Please update ASAP."
+                    } else {
+                        "Unable to update latest data. Please update ASAP."
+                    }
+                    Snackbar.make(binding.root, msg, Snackbar.LENGTH_INDEFINITE)
+                        .setAction("OK") {}
+                        .show()
+                }
+            }
+
+            override fun onAvailable(network: Network) {
+                runOnUiThread {
+                    Snackbar.make(binding.root, "Connected", Snackbar.LENGTH_SHORT).show()
+                }
+            }
+        }
+        cm.registerNetworkCallback(request, networkCallback!!)
     }
 
     private fun setupToolbar() {
@@ -63,7 +165,6 @@ class MainActivity : AppCompatActivity() {
         binding.tvOutletName.text = getString(R.string.outlet_label, prefsManager.selectedOutlet)
         updateLastSynced()
 
-        // Show version number
         try {
             val versionName = packageManager.getPackageInfo(packageName, 0).versionName
             binding.tvVersion.text = "v$versionName"
@@ -86,6 +187,20 @@ class MainActivity : AppCompatActivity() {
             } else {
                 false
             }
+        }
+
+        // Out of Stock button
+        binding.btnOutOfStock.setOnClickListener {
+            startActivity(Intent(this, StockListActivity::class.java).apply {
+                putExtra(StockListActivity.EXTRA_MODE, StockListActivity.MODE_OUT_OF_STOCK)
+            })
+        }
+
+        // Negative Stock button
+        binding.btnNegativeStock.setOnClickListener {
+            startActivity(Intent(this, StockListActivity::class.java).apply {
+                putExtra(StockListActivity.EXTRA_MODE, StockListActivity.MODE_NEGATIVE_STOCK)
+            })
         }
     }
 
@@ -114,7 +229,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateLastSynced() {
-        val lastSync = prefsManager.lastSyncTimestamp
+        val lastSync = prefsManager.lastStockSyncTimestamp.ifBlank {
+            prefsManager.lastSyncTimestamp
+        }
         binding.tvLastSynced.text = if (lastSync.isBlank()) {
             getString(R.string.never_synced)
         } else {

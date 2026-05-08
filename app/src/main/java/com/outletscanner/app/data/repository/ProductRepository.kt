@@ -3,6 +3,7 @@ package com.outletscanner.app.data.repository
 import android.content.Context
 import com.outletscanner.app.data.database.AppDatabase
 import com.outletscanner.app.data.model.BarcodeMapping
+import com.outletscanner.app.data.model.PoRecord
 import com.outletscanner.app.data.model.Product
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,6 +16,7 @@ class ProductRepository(context: Context) {
     private val db = AppDatabase.getInstance(context)
     private val dao = db.productDao()
     private val barcodeDao = db.barcodeMappingDao()
+    private val poDao = db.poRecordDao()
 
     /**
      * Two-step lookup: barcode → itemcode (via barcode_mappings) → product (via products).
@@ -73,8 +75,122 @@ class ProductRepository(context: Context) {
         dao.deleteAll()
     }
 
+    suspend fun getOutOfStockItems(outlet: String): List<Product> {
+        return dao.getOutOfStockItems(outlet)
+    }
+
+    suspend fun getOutOfStockCount(outlet: String): Int {
+        return dao.getOutOfStockCount(outlet)
+    }
+
+    suspend fun getNegativeStockItems(outlet: String): List<Product> {
+        return dao.getNegativeStockItems(outlet)
+    }
+
+    suspend fun getNegativeStockCount(outlet: String): Int {
+        return dao.getNegativeStockCount(outlet)
+    }
+
+    suspend fun getOutOfStockItemsFiltered(outlet: String, dept: String, subDept: String): List<Product> {
+        return dao.getOutOfStockItemsFiltered(outlet, dept, subDept)
+    }
+
+    suspend fun getNegativeStockItemsFiltered(outlet: String, dept: String, subDept: String): List<Product> {
+        return dao.getNegativeStockItemsFiltered(outlet, dept, subDept)
+    }
+
+    suspend fun getDistinctDepartments(outlet: String): List<String> {
+        return dao.getDistinctDepartments(outlet)
+    }
+
+    suspend fun getDistinctSubDepartments(outlet: String, dept: String): List<String> {
+        return dao.getDistinctSubDepartments(outlet, dept)
+    }
+
     suspend fun deleteAllBarcodeMappings() {
         barcodeDao.deleteAll()
+    }
+
+    suspend fun getOpenPoForItem(itemCode: String): List<PoRecord> {
+        return poDao.getOpenPoForItem(itemCode)
+    }
+
+    suspend fun getPoRecordCount(): Int {
+        return poDao.getTotalCount()
+    }
+
+    suspend fun parseAndInsertPoRecords(
+        inputStream: InputStream,
+        onProgress: ((processed: Int, total: Int) -> Unit)? = null
+    ): Int = withContext(Dispatchers.IO) {
+        poDao.deleteAll()
+
+        val reader = BufferedReader(InputStreamReader(inputStream), 1024 * 64)
+        val headerLine = reader.readLine() ?: return@withContext 0
+
+        val headers = headerLine.split("|").map { it.trim().lowercase().replace(" ", "_") }
+        val headerMap = headers.mapIndexed { index, name -> name to index }.toMap()
+
+        val batch = mutableListOf<PoRecord>()
+        var totalInserted = 0
+        val batchSize = 5000
+
+        var line = reader.readLine()
+        while (line != null) {
+            if (line.isBlank()) {
+                line = reader.readLine()
+                continue
+            }
+
+            val fields = line.split("|")
+            if (fields.size < 5) {
+                line = reader.readLine()
+                continue
+            }
+
+            try {
+                val status = getField(fields, headerMap, "status", "")
+                if (status == "DROP_PO" || status == "PARTIAL_PO" || status == "PENDING") {
+                    batch.add(PoRecord(
+                        itemcode = getField(fields, headerMap, "itemcode", ""),
+                        poRefno = getField(fields, headerMap, "po_refno", ""),
+                        poDate = getField(fields, headerMap, "po_date", ""),
+                        poExpiryDate = getField(fields, headerMap, "po_expiry_date", ""),
+                        poQty = getField(fields, headerMap, "po_qty", "0"),
+                        poTotal = getField(fields, headerMap, "po_total", "0"),
+                        grRefno = getField(fields, headerMap, "gr_refno", ""),
+                        grDate = getField(fields, headerMap, "gr_date", ""),
+                        grQty = getField(fields, headerMap, "gr_qty", "0"),
+                        grTotal = getField(fields, headerMap, "gr_total", "0"),
+                        shortQty = getField(fields, headerMap, "short_qty", "0"),
+                        fulfillmentPct = getField(fields, headerMap, "fulfillment_pct", "0"),
+                        status = status,
+                        supplierCode = getField(fields, headerMap, "supplier_code", ""),
+                        supplierName = getField(fields, headerMap, "supplier_name", "")
+                    ))
+                }
+            } catch (e: Exception) {
+                // Skip malformed rows
+            }
+
+            if (batch.size >= batchSize) {
+                poDao.insertAll(batch)
+                totalInserted += batch.size
+                onProgress?.invoke(totalInserted, -1)
+                batch.clear()
+            }
+
+            line = reader.readLine()
+        }
+
+        if (batch.isNotEmpty()) {
+            poDao.insertAll(batch)
+            totalInserted += batch.size
+            onProgress?.invoke(totalInserted, -1)
+        }
+
+        reader.close()
+        totalInserted
     }
 
     /**
